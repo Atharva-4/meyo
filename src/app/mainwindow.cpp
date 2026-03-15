@@ -146,7 +146,7 @@ void MainWindow::createCommands()
     this->addCommand<CommandChangeProjection>();
     this->addCommand<CommandChangeDisplayMode>(m_ui->menu_Display);
     this->addCommand<CommandToggleOriginTrihedron>();
-    this->addCommand<CommandTogglePerformanceStats>();
+    //this->addCommand<CommandTogglePerformanceStats>();
     this->addCommand<CommandZoomInCurrentDocument>();
     this->addCommand<CommandZoomOutCurrentDocument>();
     this->addCommand<CommandTurnViewCounterClockWise>();
@@ -158,15 +158,6 @@ void MainWindow::createCommands()
     this->addCommand<CommandEditOptions>();
 
 	// "koshika" commands
-    this->addCommand<CommandCutting>();
-    this->addCommand<CommandMergeSTL>();
-    // Add the hole-filling commands so their QAction can be used in menus
-    this->addCommand<CommandHoleFillingFull>();
-    this->addCommand<CommandHoleFillingSelected>();
-    //this->addCommand<CommandPointToSurface>();
-    this->addCommand<CommandPointToSurfaceWithNormals>();    
-    this->addCommand<CommandPointToSurfaceWithoutNormals>(); 
-
     this->addCommand<CommandConvert3DXML>();
 
 
@@ -179,10 +170,10 @@ void MainWindow::createCommands()
     this->addCommand<CommandPreviousDocument>();
     this->addCommand<CommandNextDocument>();
 
-    // "Help" commands
-    this->addCommand<CommandReportBug>();
-    this->addCommand<CommandSystemInformation>();
-    this->addCommand<CommandAbout>();
+    //// "Help" commands
+    //this->addCommand<CommandReportBug>();
+    //this->addCommand<CommandSystemInformation>();
+    //this->addCommand<CommandAbout>();
 }
 
 void MainWindow::createMenus()
@@ -216,7 +207,7 @@ void MainWindow::createMenus()
         fnAddAction(menu, CommandChangeProjection::Name);
         fnAddAction(menu, CommandChangeDisplayMode::Name);
         fnAddAction(menu, CommandToggleOriginTrihedron::Name);
-        fnAddAction(menu, CommandTogglePerformanceStats::Name);
+        //fnAddAction(menu, CommandTogglePerformanceStats::Name);
         menu->addSeparator();
         fnAddAction(menu, CommandZoomInCurrentDocument::Name);
         fnAddAction(menu, CommandZoomOutCurrentDocument::Name);
@@ -234,17 +225,6 @@ void MainWindow::createMenus()
 
     { // koshika
         auto menu = m_ui->menuKoshika;
-        fnAddAction(menu, CommandCutting::Name);
-        fnAddAction(menu, CommandMergeSTL::Name);
-        // add Hole Filling submenu with two entries
-        QMenu* menuHole = menu->addMenu(tr("Hole Filling"));
-        fnAddAction(menuHole, CommandHoleFillingFull::Name);      // Fill Holes (All)
-        fnAddAction(menuHole, CommandHoleFillingSelected::Name);  // Fill Holes (Selected - stub)
-        //fnAddAction(menu, CommandPointToSurface::Name);
-
-        QMenu* menuSurface = menu->addMenu(tr("Point to Surface"));
-        fnAddAction(menuSurface, CommandPointToSurfaceWithNormals::Name);
-        fnAddAction(menuSurface, CommandPointToSurfaceWithoutNormals::Name);
 
         fnAddAction(menu, CommandConvert3DXML::Name);
 
@@ -261,13 +241,13 @@ void MainWindow::createMenus()
         fnAddAction(menu, CommandNextDocument::Name);
     }
 
-    {   // Help
-        auto menu = m_ui->menu_Help;
-        fnAddAction(menu, CommandReportBug::Name);
-        fnAddAction(menu, CommandSystemInformation::Name);
-        menu->addSeparator();
-        fnAddAction(menu, CommandAbout::Name);
-    }
+    //{   // Help
+    //    auto menu = m_ui->menu_Help;
+    //    fnAddAction(menu, CommandReportBug::Name);
+    //    fnAddAction(menu, CommandSystemInformation::Name);
+    //    menu->addSeparator();
+    //    fnAddAction(menu, CommandAbout::Name);
+    //}
 }
 
 void MainWindow::onOperationFinished(bool ok, const QString &msg)

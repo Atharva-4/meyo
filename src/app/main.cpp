@@ -38,6 +38,10 @@
 #include "widget_occ_view.h"
 #include <common/mayo_version.h>
 
+#include "LicenseValidator.h"
+#include <QMessageBox>
+#include <QApplication>
+
 #include <QtCore/QtDebug>
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QDir>
@@ -480,6 +484,20 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationName("Cadify");
     QCoreApplication::setApplicationVersion(QString::fromUtf8(Mayo::strVersion));
     QApplication app(argc, argv);
+
+    // --- License check ---
+    if (!Mayo::LicenseValidator::isLicenseValid()) {
+        QMessageBox::critical(
+            nullptr,
+            QObject::tr("Cadify — License Error"),
+            QObject::tr(
+                "No valid license found!\n\n"
+                "Please ensure Cadify.lic is placed in the same folder as Cadify.exe\n\n"
+                "Contact support if you need a license."
+            )
+        );
+        return 1;
+    }
 
     // Run Mayo application GUI
     return Mayo::runApp(&app);

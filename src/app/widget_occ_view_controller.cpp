@@ -452,7 +452,7 @@ std::unique_ptr<WidgetOccViewController::ActionMatcher>
 WidgetOccViewController::createActionMatcher(View3dNavigationStyle style, const InputSequence* seq)
 {
     switch(style) {
-    case View3dNavigationStyle::Mayo: return std::make_unique<Mayo_ActionMatcher>(seq);
+    case View3dNavigationStyle::Cadify: return std::make_unique<Mayo_ActionMatcher>(seq);
     case View3dNavigationStyle::Catia: return std::make_unique<Catia_ActionMatcher>(seq);
     case View3dNavigationStyle::SolidWorks: return std::make_unique<SolidWorks_ActionMatcher>(seq);
     case View3dNavigationStyle::Unigraphics: return std::make_unique<Unigraphics_ActionMatcher>(seq);

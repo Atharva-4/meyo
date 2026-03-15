@@ -169,7 +169,7 @@ CommandToggleOriginTrihedron::CommandToggleOriginTrihedron(IAppContext* context)
     : BaseCommandDisplay(context)
 {
     auto action = new QAction(this);
-    action->setText(Command::tr("Show Origin Trihedron"));
+    action->setText(Command::tr("Show Origin "));
     action->setToolTip(Command::tr("Show/Hide Origin Trihedron"));
     action->setCheckable(true);
     action->setChecked(false);

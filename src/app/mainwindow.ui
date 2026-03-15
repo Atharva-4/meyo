@@ -76,7 +76,7 @@
 			</widget>
 			<widget class="QMenu" name="menuKoshika">
 				<property name="title">
-					<string>Koshika</string>
+					<string>&amp;Convertor</string>
 				</property>
 			</widget>
 			<addaction name="menu_File"/>
@@ -84,7 +84,6 @@
 			<addaction name="menu_Tools"/>
 			<addaction name="menuKoshika"/>
 			<addaction name="menu_Window"/>
-			<addaction name="menu_Help"/>
 		</widget>
 	</widget>
 	<layoutdefault spacing="6" margin="11"/>

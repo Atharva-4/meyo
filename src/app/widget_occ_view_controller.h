@@ -119,7 +119,7 @@ private:
 
     IWidgetOccView* m_occView = nullptr;
     Position m_prevPos;
-    View3dNavigationStyle m_navigStyle = View3dNavigationStyle::Mayo;
+    View3dNavigationStyle m_navigStyle = View3dNavigationStyle::Cadify;
     InputSequence m_inputSequence;
     std::unique_ptr<ActionMatcher> m_actionMatcher;
 };

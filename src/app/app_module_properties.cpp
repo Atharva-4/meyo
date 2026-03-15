@@ -120,7 +120,7 @@ AppModuleProperties::AppModuleProperties(Settings* settings)
 #endif
     });
     settings->addResetFunction(groupId_graphics, [=]{
-        this->navigationStyle.setValue(View3dNavigationStyle::Mayo);
+        this->navigationStyle.setValue(View3dNavigationStyle::Cadify);
         this->viewCubeCorner.setValue(Aspect_TOTP_LEFT_LOWER);
         this->defaultShowOriginTrihedron.setValue(true);
         this->instantZoomFactor.setValue(5.);

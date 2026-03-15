@@ -9,7 +9,7 @@
 namespace Mayo {
 
 enum class View3dNavigationStyle {
-    Mayo, Catia, SolidWorks, Unigraphics, ProEngineer
+    Cadify, Catia, SolidWorks, Unigraphics, ProEngineer
 };
 
 } // namespace Mayo
