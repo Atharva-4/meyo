@@ -25,9 +25,8 @@
 #include <QtNetwork/QNetworkReply>      // ← ADD THIS
 #include <QtNetwork/QNetworkRequest>    // ← ADD THIS
 #include <QEventLoop>
-#include <QUrl>                         
-
-#include <QEventLoop>
+#include <QUrl>      
+#include <QtCore/QTimer> 
 
 #include <QCoreApplication>
 #include <QProcess>
@@ -64,29 +63,36 @@ CommandConvert3DXML::CommandConvert3DXML(IAppContext* context)
     action->setToolTip(Command::tr("Convert a 3DXML file to OBJ format"));
     this->setAction(action);
 }
-
 void CommandConvert3DXML::execute()
 {
     QWidget* parent = this->widgetMain();
 
-    // --- 1. Internet check ---
+    QNetworkAccessManager networkManager;
+    QNetworkReply* reply = networkManager.head(QNetworkRequest(QUrl("http://clients3.google.com/generate_204")));
+    QEventLoop networkLoop;
+    QTimer timeoutTimer;
+    timeoutTimer.setSingleShot(true);
 
-    QNetworkAccessManager nam;
-    QNetworkReply* reply = nam.get(QNetworkRequest(QUrl("http://www.google.com")));
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
+    connect(&timeoutTimer, &QTimer::timeout, &networkLoop, &QEventLoop::quit);
+    connect(reply, &QNetworkReply::finished, &networkLoop, &QEventLoop::quit);
 
-    if (reply->error() != QNetworkReply::NoError) {
-        QMessageBox::warning(parent, tr("No Internet"),
-            tr("Internet connection is required for 3DXML conversion.\n"
-                "Please check your connection and try again."));
-        reply->deleteLater();
-        return;
-    }
+    timeoutTimer.start(5000);
+    networkLoop.exec();
+
+    const bool timedOut = !reply->isFinished();
+    if (timedOut)
+        reply->abort();
+
+    const bool hasInternet = !timedOut && reply->error() == QNetworkReply::NoError;
     reply->deleteLater();
 
-    // --- 2. File picker ---
+    if (!hasInternet) {
+        QMessageBox::warning(parent, tr("No Internet"),
+            tr("Internet connection is required for 3DXML conversion.\n"
+               "Please check your connection and try again."));
+        return;
+    }
+
     const QString input3dxml = QFileDialog::getOpenFileName(
         parent, tr("Select 3DXML File"), QString(),
         tr("3DXML Files (*.3dxml);;All Files (*)")
@@ -94,8 +100,7 @@ void CommandConvert3DXML::execute()
     if (input3dxml.isEmpty())
         return;
 
-    // --- 3. File size check (20 MB limit) ---
-    const qint64 maxSize = 20LL * 1024 * 1024; // 20 MB in bytes
+    const qint64 maxSize = 20LL * 1024 * 1024;
     const qint64 fileSize = QFileInfo(input3dxml).size();
     if (fileSize > maxSize) {
         QMessageBox::warning(parent, tr("File Too Large"),
@@ -106,9 +111,12 @@ void CommandConvert3DXML::execute()
         return;
     }
 
-    // --- rest of your execute() continues here ---
     const QString appDir = QCoreApplication::applicationDirPath();
     const QString exePath = appDir + "/3dxml_converter/3dxml_converter.exe";
+    const QString zipPath = QFileInfo(input3dxml).absolutePath() + "/" +
+        QFileInfo(input3dxml).completeBaseName() + ".zip";
+
+    QFile::remove(zipPath);
 
     QMessageBox::information(parent, tr("3DXML Converter"),
         tr("Conversion will start now.\n\n"
@@ -116,25 +124,14 @@ void CommandConvert3DXML::execute()
             "Please wait until the success message appears.\n"
             "Do NOT close the application!"));
 
-    auto* progress = new QProgressDialog(
-        tr("Converting 3DXML... Please wait."), QString(), 0, 0, parent);
-    progress->setWindowModality(Qt::WindowModal);
-    progress->setCancelButton(nullptr);
-    progress->setMinimumDuration(0);
-    progress->show();
-
     auto* worker = new Converter3DXmlWorker(input3dxml, exePath, parent);
 
     connect(worker, &Converter3DXmlWorker::finished,
-        parent, [parent, progress, worker](bool success, const QString& zipPath, const QString& errMsg) {
-            progress->close();
-            progress->deleteLater();
-            worker->deleteLater();
-
+        parent, [parent](bool success, const QString& outputZipPath, const QString& errMsg) {
             if (success) {
                 QMessageBox::information(parent, tr("3DXML Converter"),
                     tr("Conversion complete!\n\nZIP saved to:\n%1\n\nRight-click → Extract All to get OBJ.")
-                    .arg(zipPath));
+                    .arg(outputZipPath));
             }
             else {
                 QMessageBox::critical(parent, tr("3DXML Converter"),

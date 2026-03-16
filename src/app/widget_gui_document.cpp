@@ -97,6 +97,9 @@ WidgetGuiDocument::WidgetGuiDocument(GuiDocument* guiDoc, QWidget* parent)
 
     m_btnGrid = this->createViewBtn(widgetBtnsContents, Theme::Icon::Grid, tr("Edit Grid"));
     m_btnGrid->setCheckable(true);
+    m_btnGrid->setChecked(false);
+    m_btnGrid->setEnabled(false);
+    m_btnGrid->setVisible(false);
 
     m_btnEditClipping = this->createViewBtn(widgetBtnsContents, Theme::Icon::ClipPlane, tr("Edit clip planes"));
     m_btnEditClipping->setCheckable(true);
