@@ -552,23 +552,29 @@ if(Mayo_BuildApp)
         ${Mayo_AppIconMacOS}
     )
     ##here is the exe path: $<TARGET_FILE:cadify>
-   set(KOSHIKA_EXE_DIR "${CMAKE_SOURCE_DIR}/koshika_tools")
+    set(KOSHIKA_EXE_DIR "${CMAKE_SOURCE_DIR}/koshika_tools")
+    set(KOSHIKA_COPY_STAMP "${CMAKE_CURRENT_BINARY_DIR}/cadify_koshika_tools.stamp")
 
-add_custom_command(TARGET cadify POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${KOSHIKA_EXE_DIR}/ply2objwithnormal"
-        "$<TARGET_FILE_DIR:cadify>/ply2objwithnormal"
+    add_custom_command(
+        OUTPUT "${KOSHIKA_COPY_STAMP}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${KOSHIKA_EXE_DIR}/ply2objwithnormal"
+                "$<TARGET_FILE_DIR:cadify>/ply2objwithnormal"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${KOSHIKA_EXE_DIR}/ply2objwithoutnormal"
+                "$<TARGET_FILE_DIR:cadify>/ply2objwithoutnormal"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${KOSHIKA_EXE_DIR}/3dxml_converter"
+                "$<TARGET_FILE_DIR:cadify>/3dxml_converter"
+        COMMAND ${CMAKE_COMMAND} -E touch "${KOSHIKA_COPY_STAMP}"
+        DEPENDS cadify
+        COMMENT "Copying Koshika tools to build output..."
+        VERBATIM
+    )
 
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${KOSHIKA_EXE_DIR}/ply2objwithoutnormal"
-        "$<TARGET_FILE_DIR:cadify>/ply2objwithoutnormal"
-
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${KOSHIKA_EXE_DIR}/3dxml_converter"
-    "$<TARGET_FILE_DIR:cadify>/3dxml_converter"
-
-    COMMENT "Copying Koshika tools to build output..."
-)
+    add_custom_target(cadify_koshika_tools_copy ALL
+        DEPENDS "${KOSHIKA_COPY_STAMP}"
+    )
 
     #koshika features
    target_sources(cadify PRIVATE

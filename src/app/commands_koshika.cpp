@@ -2,15 +2,17 @@
 
 #include "../gui/gui_document.h"
 #include "../gui/v3d_view_controller.h"
+#include "widget_message_indicator.h"
 #include <QAction>
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QFileDialog>
-#include <QtWidgets/QProgressDialog> // Add this include at the top with other QtWidgets includes
 
 #include <QFileInfo> // tostdstring
+#include <QApplication>
+#include <QFile>
 #include <QMessageBox>
 
 #include <QThread>// holeFilling using Thread
@@ -19,18 +21,15 @@
 
 #include <QListWidget>
 
-#include <QProcessEnvironment>// for 3dxmcovertor
-#include"Converter3DXmlWorker.h"
+#include "Converter3DXmlWorker.h"
 #include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>      // ← ADD THIS
-#include <QtNetwork/QNetworkRequest>    // ← ADD THIS
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
 #include <QEventLoop>
-#include <QUrl>                         
-
-#include <QEventLoop>
+#include <QTimer>
+#include <QUrl>
 
 #include <QCoreApplication>
-#include <QProcess>
 
 #include <gp_Dir.hxx>
 #include <gp_Pnt.hxx>
@@ -49,11 +48,14 @@
 
 namespace Mayo {
 
-   
+namespace {
+bool g_is3dXmlConversionRunning = false;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 //covertor 3dxml
-// 
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 CommandConvert3DXML::CommandConvert3DXML(IAppContext* context)
@@ -69,24 +71,37 @@ void CommandConvert3DXML::execute()
 {
     QWidget* parent = this->widgetMain();
 
-    // --- 1. Internet check ---
-
-    QNetworkAccessManager nam;
-    QNetworkReply* reply = nam.get(QNetworkRequest(QUrl("http://www.google.com")));
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-
-    if (reply->error() != QNetworkReply::NoError) {
-        QMessageBox::warning(parent, tr("No Internet"),
-            tr("Internet connection is required for 3DXML conversion.\n"
-                "Please check your connection and try again."));
-        reply->deleteLater();
+    if (g_is3dXmlConversionRunning) {
+        WidgetMessageIndicator::showInfo(tr("3DXML conversion is already running..."), parent);
         return;
     }
+
+    QNetworkAccessManager networkManager;
+    QNetworkReply* reply = networkManager.head(QNetworkRequest(QUrl("http://clients3.google.com/generate_204")));
+    QEventLoop networkLoop;
+    QTimer timeoutTimer;
+    timeoutTimer.setSingleShot(true);
+
+    connect(&timeoutTimer, &QTimer::timeout, &networkLoop, &QEventLoop::quit);
+    connect(reply, &QNetworkReply::finished, &networkLoop, &QEventLoop::quit);
+
+    timeoutTimer.start(5000);
+    networkLoop.exec();
+
+    const bool timedOut = !reply->isFinished();
+    if (timedOut)
+        reply->abort();
+
+    const bool hasInternet = !timedOut && reply->error() == QNetworkReply::NoError;
     reply->deleteLater();
 
-    // --- 2. File picker ---
+    if (!hasInternet) {
+        QMessageBox::warning(parent, tr("No Internet"),
+            tr("Internet connection is required for 3DXML conversion.\n"
+               "Please check your connection and try again."));
+        return;
+    }
+
     const QString input3dxml = QFileDialog::getOpenFileName(
         parent, tr("Select 3DXML File"), QString(),
         tr("3DXML Files (*.3dxml);;All Files (*)")
@@ -94,8 +109,7 @@ void CommandConvert3DXML::execute()
     if (input3dxml.isEmpty())
         return;
 
-    // --- 3. File size check (20 MB limit) ---
-    const qint64 maxSize = 20LL * 1024 * 1024; // 20 MB in bytes
+    const qint64 maxSize = 20LL * 1024 * 1024;
     const qint64 fileSize = QFileInfo(input3dxml).size();
     if (fileSize > maxSize) {
         QMessageBox::warning(parent, tr("File Too Large"),
@@ -106,9 +120,12 @@ void CommandConvert3DXML::execute()
         return;
     }
 
-    // --- rest of your execute() continues here ---
     const QString appDir = QCoreApplication::applicationDirPath();
     const QString exePath = appDir + "/3dxml_converter/3dxml_converter.exe";
+    const QString zipPath = QFileInfo(input3dxml).absolutePath() + "/" +
+        QFileInfo(input3dxml).completeBaseName() + ".zip";
+
+    QFile::remove(zipPath);
 
     QMessageBox::information(parent, tr("3DXML Converter"),
         tr("Conversion will start now.\n\n"
@@ -116,25 +133,24 @@ void CommandConvert3DXML::execute()
             "Please wait until the success message appears.\n"
             "Do NOT close the application!"));
 
-    auto* progress = new QProgressDialog(
-        tr("Converting 3DXML... Please wait."), QString(), 0, 0, parent);
-    progress->setWindowModality(Qt::WindowModal);
-    progress->setCancelButton(nullptr);
-    progress->setMinimumDuration(0);
-    progress->show();
+    g_is3dXmlConversionRunning = true;
+    this->action()->setEnabled(false);
+    QApplication::setOverrideCursor(Qt::BusyCursor);
+    WidgetMessageIndicator::showInfo(tr("3DXML conversion started..."), parent);
 
     auto* worker = new Converter3DXmlWorker(input3dxml, exePath, parent);
 
     connect(worker, &Converter3DXmlWorker::finished,
-        parent, [parent, progress, worker](bool success, const QString& zipPath, const QString& errMsg) {
-            progress->close();
-            progress->deleteLater();
-            worker->deleteLater();
+        parent, [this, parent](bool success, const QString& outputZipPath, const QString& errMsg) {
+            g_is3dXmlConversionRunning = false;
+            this->action()->setEnabled(true);
+            QApplication::restoreOverrideCursor();
 
             if (success) {
+                WidgetMessageIndicator::showInfo(tr("3DXML conversion completed"), parent);
                 QMessageBox::information(parent, tr("3DXML Converter"),
                     tr("Conversion complete!\n\nZIP saved to:\n%1\n\nRight-click → Extract All to get OBJ.")
-                    .arg(zipPath));
+                    .arg(outputZipPath));
             }
             else {
                 QMessageBox::critical(parent, tr("3DXML Converter"),
@@ -145,4 +161,5 @@ void CommandConvert3DXML::execute()
     connect(worker, &QThread::finished, worker, &QObject::deleteLater);
     worker->start();
 }
+
 } // namespace Mayo
