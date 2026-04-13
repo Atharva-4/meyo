@@ -90,5 +90,17 @@ namespace Mayo {
         bool m_isRunning = false;
     };
     
+    class CommandHollowing : public Command {
+        Q_OBJECT
+    public:
+        static constexpr const char Name[] = "hollow-mesh";
+        explicit CommandHollowing(IAppContext* context);
+        void execute() override;
+        bool getEnabledStatus() const override { return true; }
+
+    private:
+        bool m_isRunning = false;
+    };
+
 
 } // namespace Mayo

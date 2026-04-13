@@ -1,10 +1,11 @@
 #include "STLCutter.h"
 #include <fstream>
-#include <iostream>
 #include <sstream>
-#include <cstdio>
 #include <cmath>
 #include <algorithm>
+#include <cstdint>
+#include <cctype>
+#include <cstring>
 
 namespace Mayo {
     namespace {
@@ -51,34 +52,108 @@ namespace Mayo {
     STLCutter::STLCutter() {}
 
     std::vector<Facet> STLCutter::loadSTL(const std::string& filename) {
-        std::ifstream in(filename);
         std::vector<Facet> facets;
-        if (!in.is_open()) return facets;
 
+        std::ifstream in(filename, std::ios::binary);
+        if (!in.is_open())
+            return facets;
+
+        in.seekg(0, std::ios::end);
+        const std::streamoff size = in.tellg();
+        in.seekg(0, std::ios::beg);
+        if (size <= 0)
+            return facets;
+
+        const auto byteCount = static_cast<std::size_t>(size);
+        std::vector<char> bytes(byteCount);
+        in.read(bytes.data(), static_cast<std::streamsize>(byteCount));
+        if (!in)
+            return facets;
+
+        bool isBinary = false;
+        if (bytes.size() >= 84) {
+            uint32_t triCount = 0;
+            std::memcpy(&triCount, bytes.data() + 80, sizeof(uint32_t));
+            const size_t expectedSize = 84u + static_cast<size_t>(triCount) * 50u;
+            if (triCount > 0 && expectedSize == bytes.size()) {
+                const bool startsWithSolid = std::equal(
+                    bytes.begin(), bytes.begin() + 5,
+                    std::string("solid").begin(),
+                    [](char lhs, char rhs) {
+                        return std::tolower(static_cast<unsigned char>(lhs)) == rhs;
+                    }
+                );
+
+                if (!startsWithSolid) {
+                    isBinary = true;
+                }
+                else {
+                    // Binary STL may also start with "solid" in the header.
+                    // If we find a null-byte early, we treat it as binary.
+                    const size_t scanLimit = std::min<size_t>(bytes.size(), 256);
+                    isBinary = std::find(bytes.begin(), bytes.begin() + scanLimit, '\0')
+                        != bytes.begin() + scanLimit;
+                }
+            }
+        }
+
+        if (isBinary) {
+            uint32_t triCount = 0;
+            std::memcpy(&triCount, bytes.data() + 80, sizeof(uint32_t));
+
+            facets.reserve(triCount);
+            size_t offset = 84;
+            for (uint32_t i = 0; i < triCount && offset + 50 <= bytes.size(); ++i, offset += 50) {
+                Facet f;
+                std::memcpy(&f.normal.x, bytes.data() + offset + 0, 4);
+                std::memcpy(&f.normal.y, bytes.data() + offset + 4, 4);
+                std::memcpy(&f.normal.z, bytes.data() + offset + 8, 4);
+                std::memcpy(&f.v1.x, bytes.data() + offset + 12, 4);
+                std::memcpy(&f.v1.y, bytes.data() + offset + 16, 4);
+                std::memcpy(&f.v1.z, bytes.data() + offset + 20, 4);
+                std::memcpy(&f.v2.x, bytes.data() + offset + 24, 4);
+                std::memcpy(&f.v2.y, bytes.data() + offset + 28, 4);
+                std::memcpy(&f.v2.z, bytes.data() + offset + 32, 4);
+                std::memcpy(&f.v3.x, bytes.data() + offset + 36, 4);
+                std::memcpy(&f.v3.y, bytes.data() + offset + 40, 4);
+                std::memcpy(&f.v3.z, bytes.data() + offset + 44, 4);
+                facets.push_back(f);
+            }
+
+            return facets;
+        }
+
+        std::istringstream stream(std::string(bytes.begin(), bytes.end()));
         std::string line;
         Facet facet;
         int vertex_count = 0;
 
-        while (std::getline(in, line)) {
-            if (line.find("facet normal") != std::string::npos) {
-                // sscanf_s works on MSVC; keep as-is but guard if you later support other compilers
-                sscanf_s(line.c_str(), " facet normal %f %f %f",
-                    &facet.normal.x, &facet.normal.y, &facet.normal.z);
+        while (std::getline(stream, line)) {
+            std::istringstream ls(line);
+            std::string word;
+            ls >> word;
+
+            if (word == "facet") {
+                std::string normal;
+                ls >> normal >> facet.normal.x >> facet.normal.y >> facet.normal.z;
             }
-            else if (line.find("vertex") != std::string::npos) {
+            else if (word == "vertex") {
                 Vec3 v{};
-                sscanf_s(line.c_str(), " vertex %f %f %f", &v.x, &v.y, &v.z);
+                ls >> v.x >> v.y >> v.z;
                 if (vertex_count == 0) facet.v1 = v;
                 else if (vertex_count == 1) facet.v2 = v;
                 else if (vertex_count == 2) facet.v3 = v;
                 vertex_count++;
             }
-            else if (line.find("endfacet") != std::string::npos) {
-                if (vertex_count == 3) facets.push_back(facet);
+            else if (word == "endfacet") {
+                if (vertex_count == 3)
+                    facets.push_back(facet);
+
                 facet = Facet();
                 vertex_count = 0;
             }
         }
+
         return facets;
     }
 

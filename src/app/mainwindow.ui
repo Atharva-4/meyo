@@ -76,12 +76,19 @@
 			</widget>
 			<widget class="QMenu" name="menuKoshika">
 				<property name="title">
-					<string>&amp;Convertor</string>
+					<string>&amp;Koshika</string>
 				</property>
 			</widget>
+			<widget class="QMenu" name="menuConvertor">
+			<property name="title">
+        <string>&amp;Convertor</string>
+			</property>
+		</widget>
+
 			<addaction name="menu_File"/>
 			<addaction name="menu_Display"/>
 			<addaction name="menu_Tools"/>
+			<addaction name="menuConvertor"/>
 			<addaction name="menuKoshika"/>
 			<addaction name="menu_Window"/>
 		</widget>
