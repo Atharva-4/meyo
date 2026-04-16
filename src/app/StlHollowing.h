@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 
+#include <map>      // ← ADD THIS
+#include <array> 
+
 namespace StlHollowing {
 
     // ── Basic geometry types ──────────────────────────────────────────────────
@@ -69,5 +72,27 @@ namespace StlHollowing {
     ///                    so normals point into the hollow cavity.
     /// `thickness` must be positive.
     std::vector<Triangle> buildHollowMesh(const std::vector<Triangle>& tris, float thickness);
+
+
+
+    /// Build a hollow mesh with independent offsets for both shells:
+    ///   - Outer shell  : offset by `outerOffset` with original winding.
+    ///   - Inner shell  : offset by `-abs(innerOffset)` with reversed winding.
+    ///                    Reversed winding keeps normals pointing to the cavity.
+    /// `innerOffset` and `outerOffset` are absolute distances in model units.
+    std::vector<Triangle> buildHollowMeshWithOffsets(
+        const std::vector<Triangle>& tris,
+        float innerOffset,
+        float outerOffset);
+
+    struct QuantizedVertex {
+        int x, y, z;
+        bool operator<(const QuantizedVertex& o) const {
+            if (x != o.x) return x < o.x;
+            if (y != o.y) return y < o.y;
+            return z < o.z;
+        }
+    };
+
 
 } // namespace StlHollowing

@@ -221,20 +221,112 @@ namespace StlHollowing {
     }
 
     std::vector<Triangle> buildHollowMesh(const std::vector<Triangle>& tris, float thickness) {
-        std::vector<Triangle> out;
-        out.reserve(tris.size() * 2);
-
-        for (const auto& t : tris) {
-            // ── Outer face: keep original winding ────────────────────────────
-            out.push_back(t);
-
-            // ── Inner face: offset inward + reverse winding ───────────────────
-            // Reversing v1 <-> v3 flips the normal so it points into the cavity
-            Triangle inner = offsetTriangle(t, -std::abs(thickness));
-            std::swap(inner.v1, inner.v3);
-            out.push_back(inner);
-        }
-        return out;
+        return buildHollowMeshWithOffsets(tris, std::abs(thickness), 0.f);
     }
 
+
+    std::vector<Triangle> buildHollowMeshWithOffsets(
+        const std::vector<Triangle>& tris,
+        float innerOffset,
+        float outerOffset)
+    {
+        std::vector<Triangle> out;
+
+        // ── STEP 1: Collect all unique vertices with welding ──
+        const float epsilon = 1e-4f;
+        const float invEps = 1.0f / epsilon;
+
+        std::map<QuantizedVertex, int> vertexMap;  // quantized → index
+        std::vector<Vec3> uniqueVerts;
+        std::vector<std::vector<int>> vertToFaces; // which faces use this vertex
+
+        // First pass: map original triangle vertices to unique indices
+        std::vector<std::array<int, 3>> triVertexIndices; // per-triangle: [v0,v1,v2] indices
+        triVertexIndices.reserve(tris.size());
+
+        for (const auto& t : tris) {
+            std::array<int, 3> indices;
+            const Vec3* verts[3] = { &t.v1, &t.v2, &t.v3 };
+
+            for (int i = 0; i < 3; ++i) {
+                const Vec3& v = *verts[i];
+                QuantizedVertex qv = {
+                    static_cast<int>(std::round(v.x * invEps)),
+                    static_cast<int>(std::round(v.y * invEps)),
+                    static_cast<int>(std::round(v.z * invEps))
+                };
+
+                auto it = vertexMap.find(qv);
+                if (it == vertexMap.end()) {
+                    int newIdx = static_cast<int>(uniqueVerts.size());
+                    vertexMap[qv] = newIdx;
+                    uniqueVerts.push_back(v);
+                    vertToFaces.emplace_back();
+                    indices[i] = newIdx;
+                }
+                else {
+                    indices[i] = it->second;
+                }
+                vertToFaces[indices[i]].push_back(static_cast<int>(triVertexIndices.size()));
+            }
+            triVertexIndices.push_back(indices);
+        }
+
+        // ── STEP 2: Compute VERTEX normals (averaged from adjacent faces) ──
+        std::vector<Vec3> vertexNormals(uniqueVerts.size(), { 0,0,0 });
+
+        for (size_t fi = 0; fi < tris.size(); ++fi) {
+            const auto& t = tris[fi];
+            Vec3 fn = faceNormal(t);  // Face normal
+            const auto& indices = triVertexIndices[fi];
+
+            for (int vi : indices) {
+                vertexNormals[vi] = vertexNormals[vi] + fn;
+            }
+        }
+
+        for (auto& vn : vertexNormals) {
+            vn = normalize(vn);
+        }
+
+        // ── STEP 3: Create offset vertices ──
+        const size_t originalVertCount = uniqueVerts.size();
+        std::vector<Vec3> outerVerts = uniqueVerts;
+        std::vector<Vec3> innerVerts;
+        innerVerts.reserve(originalVertCount);
+
+        // Outer shell: offset outward
+        for (size_t i = 0; i < originalVertCount; ++i) {
+            outerVerts[i] = uniqueVerts[i] + vertexNormals[i] * outerOffset;
+        }
+
+        // Inner shell: offset inward
+        for (size_t i = 0; i < originalVertCount; ++i) {
+            innerVerts.push_back(uniqueVerts[i] - vertexNormals[i] * innerOffset);
+        }
+
+        // ── STEP 4: Build triangles ──
+        out.reserve(tris.size() * 2);
+
+        for (size_t fi = 0; fi < tris.size(); ++fi) {
+            const auto& indices = triVertexIndices[fi];
+
+            // Outer face: original winding
+            out.push_back({
+                outerVerts[indices[0]],
+                outerVerts[indices[1]],
+                outerVerts[indices[2]]
+                });
+
+            // Inner face: REVERSED winding (v0↔v2 swap)
+            out.push_back({
+                innerVerts[indices[2]],  // swapped
+                innerVerts[indices[1]],
+                innerVerts[indices[0]]   // swapped
+                });
+        }
+
+        return out;
+    
+    }
 } // namespace StlHollowing

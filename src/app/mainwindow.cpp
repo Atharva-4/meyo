@@ -173,7 +173,7 @@ namespace Mayo {
         this->addCommand<CommandPointToSurfaceWithoutNormals>();
         this->addCommand<CommandSimplification>();
         this->addCommand<CommandHollowing>();
-
+        this->addCommand<CommandMeshRepairStatistics>();
 
 
         // Add the 3DXML conversion command so its QAction can be used in menus
@@ -261,8 +261,11 @@ namespace Mayo {
             fnAddAction(menuSurface, CommandPointToSurfaceWithoutNormals::Name);
 
             
-    fnAddAction(menu, CommandSimplification::Name);
-    fnAddAction(menu, CommandHollowing::Name);
+            fnAddAction(menu, CommandSimplification::Name);
+            fnAddAction(menu, CommandHollowing::Name);
+
+            QMenu* menuStats = menu->addMenu(tr("Statistics"));
+            fnAddAction(menuStats, CommandMeshRepairStatistics::Name);
 
             //fnAddAction(menu, CommandConvert3DXML::Name);
 

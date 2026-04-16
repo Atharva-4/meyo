@@ -103,4 +103,14 @@ namespace Mayo {
     };
 
 
+    class CommandMeshRepairStatistics : public Command {
+    public:
+        CommandMeshRepairStatistics(IAppContext* context);
+        void execute() override;
+        static constexpr std::string_view Name = "meshrepair.statistics";
+
+    private:
+        bool m_isRunning = false;
+    };
+
 } // namespace Mayo

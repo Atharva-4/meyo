@@ -89,6 +89,9 @@
 #include "StlHollowing.h"
 
 
+#include "MeshRepairStatistics.h"
+
+
 namespace Mayo {
 
     CommandCutting::CommandCutting(IAppContext* context)
@@ -438,16 +441,16 @@ namespace Mayo {
             detectedHoleCount = static_cast<int>(*holeCount);
 
 
-       
+
         QVector<int> selectedIds;
         if (detectedHoleCount < 0) {
-    QMessageBox::warning(parent, tr("Error"), tr("Could not detect holes."));
-    return;
-    }
-    else if (detectedHoleCount == 0) {
-    QMessageBox::information(parent, tr("No Holes"), tr("No holes detected in this file."));
-    return;
-    }
+            QMessageBox::warning(parent, tr("Error"), tr("Could not detect holes."));
+            return;
+        }
+        else if (detectedHoleCount == 0) {
+            QMessageBox::information(parent, tr("No Holes"), tr("No holes detected in this file."));
+            return;
+        }
         if (detectedHoleCount > 0) {
             QDialog dlg(parent);
             dlg.setWindowTitle(tr("Fill Holes (Selected)"));
@@ -462,11 +465,11 @@ namespace Mayo {
             for (int i = 0; i < detectedHoleCount; ++i)
                 list->addItem(QString::number(i));
 
-   
-                // Insert immediately after populating 'list' (after the for loop that adds list items)
 
-                        // Precompute hole boundaries (STL -> SurfaceMesh -> boundary loops)
-                std::vector<std::vector<Mayo::Point>> holeBoundaries;
+            // Insert immediately after populating 'list' (after the for loop that adds list items)
+
+                    // Precompute hole boundaries (STL -> SurfaceMesh -> boundary loops)
+            std::vector<std::vector<Mayo::Point>> holeBoundaries;
             {
                 std::vector<Mayo::Triangles> triangles;
                 if (Mayo::isBinarySTL(inPath.toStdString()))
@@ -607,14 +610,14 @@ namespace Mayo {
     }
 
 
-    
 
 
-///////////////////////////////////////////////////////////////////
-//
-// STL Merge Command
-//
-///////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////
+    //
+    // STL Merge Command
+    //
+    ///////////////////////////////////////////////////////////////////
 
     CommandMergeSTL::CommandMergeSTL(IAppContext* context)
         : Command(context)
@@ -678,11 +681,11 @@ namespace Mayo {
         );
     }
 
-///////////////////////////////////////////////////////////////////
-//
-// Point to Surface Command
-//
-///////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////
+    //
+    // Point to Surface Command
+    //
+    ///////////////////////////////////////////////////////////////////
 
 
     CommandPointToSurfaceWithNormals::CommandPointToSurfaceWithNormals(IAppContext* context)
@@ -766,7 +769,7 @@ namespace Mayo {
         if (outputObj.isEmpty())
             return;
 
-        const QString appDir = QCoreApplication::applicationDirPath(); 
+        const QString appDir = QCoreApplication::applicationDirPath();
         const QString exePath = appDir + "/ply2objwithoutnormal/ply2objwithoutnormal.exe";
 
         QProcess process;
@@ -783,688 +786,867 @@ namespace Mayo {
         QMessageBox::information(parent, tr("Point to Surface (Without Normals)"),
             tr("Done!\nOutput saved to:\n%1").arg(outputObj));
     }
-     
 
 
-///////////////////////////////////////////////////////////////////////////////
-//
-//covertor 3dxml
-// 
-///////////////////////////////////////////////////////////////////////////////
 
-CommandConvert3DXML::CommandConvert3DXML(IAppContext* context)
-    : Command(context)
-{
-    auto action = new QAction(this);
-    action->setText(Command::tr("Convert 3DXML to OBJ"));
-    action->setToolTip(Command::tr("Convert a 3DXML file to OBJ format"));
-    this->setAction(action);
-}
+    ///////////////////////////////////////////////////////////////////////////////
+    //
+    //covertor 3dxml
+    // 
+    ///////////////////////////////////////////////////////////////////////////////
 
-void CommandConvert3DXML::execute()
-{
-    QWidget* parent = this->widgetMain();
-
-    const QString input3dxml = QFileDialog::getOpenFileName(
-        parent, tr("Select 3DXML File"), QString(),
-        tr("3DXML Files (*.3dxml);;All Files (*)")
-    );
-    if (input3dxml.isEmpty())
-        return;
-
-    const QString appDir = QCoreApplication::applicationDirPath();
-    const QString exePath = appDir + "/3dxml_converter/3dxml_converter.exe";
-
-    QMessageBox::information(parent, tr("3DXML Converter"),
-        tr("Conversion will start now.\n\n"
-            "NOTE: First time may take several minutes.\n"
-            "Please wait until the success message appears.\n"
-            "Do NOT close the application!"));
-
-    QProcess process;
-    process.setWorkingDirectory(QFileInfo(input3dxml).absolutePath());
-    process.start(exePath, QStringList() << input3dxml);
-    process.waitForFinished(600000); // 10 minutes
-
-    const QString zipPath = QFileInfo(input3dxml).absolutePath() + "/" +
-        QFileInfo(input3dxml).completeBaseName() + ".zip";
-
-    if (!QFile::exists(zipPath)) {
-        QString errMsg = QString::fromLocal8Bit(process.readAllStandardError());
-        QMessageBox::critical(parent, tr("3DXML Converter"),
-            tr("Conversion failed!\n%1").arg(errMsg));
-        return;
+    CommandConvert3DXML::CommandConvert3DXML(IAppContext* context)
+        : Command(context)
+    {
+        auto action = new QAction(this);
+        action->setText(Command::tr("Convert 3DXML to OBJ"));
+        action->setToolTip(Command::tr("Convert a 3DXML file to OBJ format"));
+        this->setAction(action);
     }
 
-    QMessageBox::information(parent, tr("3DXML Converter"),
-        tr("Conversion complete!\n\nZIP saved to:\n%1\n\nRight-click → Extract All to get OBJ.")
-        .arg(zipPath));
-}
-//////////////////////////////////////////////////////////////////
-//
-// 
-//
-//////////////////////////////////////////////////////////////////
+    void CommandConvert3DXML::execute()
+    {
+        QWidget* parent = this->widgetMain();
+
+        const QString input3dxml = QFileDialog::getOpenFileName(
+            parent, tr("Select 3DXML File"), QString(),
+            tr("3DXML Files (*.3dxml);;All Files (*)")
+        );
+        if (input3dxml.isEmpty())
+            return;
+
+        const QString appDir = QCoreApplication::applicationDirPath();
+        const QString exePath = appDir + "/3dxml_converter/3dxml_converter.exe";
+
+        QMessageBox::information(parent, tr("3DXML Converter"),
+            tr("Conversion will start now.\n\n"
+                "NOTE: First time may take several minutes.\n"
+                "Please wait until the success message appears.\n"
+                "Do NOT close the application!"));
+
+        QProcess process;
+        process.setWorkingDirectory(QFileInfo(input3dxml).absolutePath());
+        process.start(exePath, QStringList() << input3dxml);
+        process.waitForFinished(600000); // 10 minutes
+
+        const QString zipPath = QFileInfo(input3dxml).absolutePath() + "/" +
+            QFileInfo(input3dxml).completeBaseName() + ".zip";
+
+        if (!QFile::exists(zipPath)) {
+            QString errMsg = QString::fromLocal8Bit(process.readAllStandardError());
+            QMessageBox::critical(parent, tr("3DXML Converter"),
+                tr("Conversion failed!\n%1").arg(errMsg));
+            return;
+        }
+
+        QMessageBox::information(parent, tr("3DXML Converter"),
+            tr("Conversion complete!\n\nZIP saved to:\n%1\n\nRight-click → Extract All to get OBJ.")
+            .arg(zipPath));
+    }
+    //////////////////////////////////////////////////////////////////
+    //
+    // 
+    //
+    //////////////////////////////////////////////////////////////////
 
 
 
-constexpr const char CommandSimplification::Name[];
+    constexpr const char CommandSimplification::Name[];
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Constructor
-// ─────────────────────────────────────────────────────────────────────────────
-CommandSimplification::CommandSimplification(IAppContext* context)
-    : Command(context)
-{
-    auto* action = new QAction(this);
-    action->setText(Command::tr("Simplify Mesh"));
-    action->setToolTip(Command::tr(
-        "Reduce triangle count of the current mesh using progressive mesh simplification"));
-    this->setAction(action);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  execute()
-// ─────────────────────────────────────────────────────────────────────────────
-void CommandSimplification::execute()
-{
-    if (m_isRunning)
-        return;
-
-    // ── 1. Get the currently open document ───────────────────────────────
-    GuiDocument* guiDoc = this->currentGuiDocument();
-    if (!guiDoc) {
-        QMessageBox::warning(this->widgetMain(),
-            tr("Simplify Mesh"),
-            tr("No document is currently open.\n"
-               "Please open an STL, PLY or OBJ file first."));
-        return;
+    // ─────────────────────────────────────────────────────────────────────────────
+    //  Constructor
+    // ─────────────────────────────────────────────────────────────────────────────
+    CommandSimplification::CommandSimplification(IAppContext* context)
+        : Command(context)
+    {
+        auto* action = new QAction(this);
+        action->setText(Command::tr("Simplify Mesh"));
+        action->setToolTip(Command::tr(
+            "Reduce triangle count of the current mesh using progressive mesh simplification"));
+        this->setAction(action);
     }
 
-    const FilePath filePath = guiDoc->document()->filePath();
-    if (filePath.empty()) {
-        QMessageBox::warning(this->widgetMain(),
-            tr("Simplify Mesh"),
-            tr("Current document has no file path associated with it."));
-        return;
-    }
+    // ─────────────────────────────────────────────────────────────────────────────
+    //  execute()
+    // ─────────────────────────────────────────────────────────────────────────────
+    void CommandSimplification::execute()
+    {
+        if (m_isRunning)
+            return;
 
-    const QString inputPath = QString::fromStdString(filePath.u8string());
-    const QString inputExt = QFileInfo(inputPath).suffix().toLower();
-    const QString inputName = QFileInfo(inputPath).fileName();
+        // ── 1. Get the currently open document ───────────────────────────────
+        GuiDocument* guiDoc = this->currentGuiDocument();
+        if (!guiDoc) {
+            QMessageBox::warning(this->widgetMain(),
+                tr("Simplify Mesh"),
+                tr("No document is currently open.\n"
+                    "Please open an STL, PLY or OBJ file first."));
+            return;
+        }
 
-    // Only support formats that Mesh can load
-    if (inputExt != "stl" && inputExt != "ply" && inputExt != "obj") {
-        QMessageBox::warning(this->widgetMain(),
-            tr("Simplify Mesh"),
-            tr("Unsupported file type: .%1\n"
-               "Only STL, PLY and OBJ files can be simplified.").arg(inputExt));
-        return;
-    }
+        const FilePath filePath = guiDoc->document()->filePath();
+        if (filePath.empty()) {
+            QMessageBox::warning(this->widgetMain(),
+                tr("Simplify Mesh"),
+                tr("Current document has no file path associated with it."));
+            return;
+        }
 
-    // ── 2. Load mesh now so we can show real triangle count in dialog ─────
-    // We load on the GUI thread here just to get the count — it's fast enough.
-    // The heavy simplification work runs on the background thread later.
-    QByteArray pathBytes = inputPath.toLocal8Bit();
-    char* pathCStr = pathBytes.data();
+        const QString inputPath = QString::fromStdString(filePath.u8string());
+        const QString inputExt = QFileInfo(inputPath).suffix().toLower();
+        const QString inputName = QFileInfo(inputPath).fileName();
 
-    Mesh* previewMesh = new Mesh(pathCStr);
-    if (previewMesh->getNumTriangles() == 0) {
-        delete previewMesh;
-        QMessageBox::critical(this->widgetMain(),
-            tr("Simplify Mesh"),
-            tr("Failed to load mesh from:\n%1\n\n"
-               "File may be empty or corrupt.").arg(inputPath));
-        return;
-    }
+        // Only support formats that Mesh can load
+        if (inputExt != "stl" && inputExt != "ply" && inputExt != "obj") {
+            QMessageBox::warning(this->widgetMain(),
+                tr("Simplify Mesh"),
+                tr("Unsupported file type: .%1\n"
+                    "Only STL, PLY and OBJ files can be simplified.").arg(inputExt));
+            return;
+        }
 
-    const int origTris = previewMesh->getNumTriangles();
-    delete previewMesh; // free preview — we'll reload on the worker thread
+        // ── 2. Load mesh now so we can show real triangle count in dialog ─────
+        // We load on the GUI thread here just to get the count — it's fast enough.
+        // The heavy simplification work runs on the background thread later.
+        QByteArray pathBytes = inputPath.toLocal8Bit();
+        char* pathCStr = pathBytes.data();
 
-    // ── 3. Dialog ─────────────────────────────────────────────────────────
-    QDialog dlg(this->widgetMain());
-    dlg.setWindowTitle(tr("Simplify Mesh"));
-    dlg.setMinimumWidth(420);
+        Mesh* previewMesh = new Mesh(pathCStr);
+        if (previewMesh->getNumTriangles() == 0) {
+            delete previewMesh;
+            QMessageBox::critical(this->widgetMain(),
+                tr("Simplify Mesh"),
+                tr("Failed to load mesh from:\n%1\n\n"
+                    "File may be empty or corrupt.").arg(inputPath));
+            return;
+        }
 
-    // Info label
-    auto* labelFile = new QLabel(
-        tr("<b>File:</b> %1<br><b>Original triangles:</b> %2")
+        const int origTris = previewMesh->getNumTriangles();
+        delete previewMesh; // free preview — we'll reload on the worker thread
+
+        // ── 3. Dialog ─────────────────────────────────────────────────────────
+        QDialog dlg(this->widgetMain());
+        dlg.setWindowTitle(tr("Simplify Mesh"));
+        dlg.setMinimumWidth(420);
+
+        // Info label
+        auto* labelFile = new QLabel(
+            tr("<b>File:</b> %1<br><b>Original triangles:</b> %2")
             .arg(inputName)
             .arg(origTris),
-        &dlg);
-    labelFile->setWordWrap(true);
+            &dlg);
+        labelFile->setWordWrap(true);
 
-    // Fixed method (best quality): Quadric
-    constexpr PMesh::EdgeCost fixedEdgeCost = PMesh::QUADRIC;
+        // Fixed method (best quality): Quadric
+        constexpr PMesh::EdgeCost fixedEdgeCost = PMesh::QUADRIC;
 
-    // Reduction slider
-    auto* labelReduction = new QLabel(tr("Triangle reduction by:"), &dlg);
+        // Reduction slider
+        auto* labelReduction = new QLabel(tr("Triangle reduction by:"), &dlg);
 
 
-    auto* slider = new QSlider(Qt::Horizontal, &dlg);
-    slider->setRange(1, 99);
-    slider->setValue(50);
+        auto* slider = new QSlider(Qt::Horizontal, &dlg);
+        slider->setRange(1, 99);
+        slider->setValue(50);
 
-    auto* spinBox = new QSpinBox(&dlg);
-    spinBox->setRange(1, 99);
-    spinBox->setValue(50);
-    spinBox->setSuffix(" %");
+        auto* spinBox = new QSpinBox(&dlg);
+        spinBox->setRange(1, 99);
+        spinBox->setValue(50);
+        spinBox->setSuffix(" %");
 
-    auto* labelResult = new QLabel(&dlg);
-    auto* labelPreviewStatus = new QLabel(&dlg);
-    labelPreviewStatus->setStyleSheet(QStringLiteral("color:#666;"));
-    labelPreviewStatus->setText(tr("Move the slider to update preview estimate"));
-    auto* checkOpenPreview = new QCheckBox(tr("Generate simplified preview file while moving slider"), &dlg);
-    checkOpenPreview->setChecked(false);
+        auto* labelResult = new QLabel(&dlg);
+        auto* labelPreviewStatus = new QLabel(&dlg);
+        labelPreviewStatus->setStyleSheet(QStringLiteral("color:#666;"));
+        labelPreviewStatus->setText(tr("Move the slider to update preview estimate"));
+        auto* checkOpenPreview = new QCheckBox(tr("Generate simplified preview file while moving slider"), &dlg);
+        checkOpenPreview->setChecked(false);
 
-    auto* previewDebounce = new QTimer(&dlg);
-    previewDebounce->setSingleShot(true);
-    auto* previewWatcher = new QFutureWatcher<bool>(&dlg);
-    bool previewBusy = false;
-    bool previewQueued = false;
-    int queuedPreviewPct = 0;
+        auto* previewDebounce = new QTimer(&dlg);
+        previewDebounce->setSingleShot(true);
+        auto* previewWatcher = new QFutureWatcher<bool>(&dlg);
+        bool previewBusy = false;
+        bool previewQueued = false;
+        int queuedPreviewPct = 0;
 
-    const auto drawer = guiDoc->graphicsScene()->drawerDefault();
-    const double baseDeviationCoeff = drawer->DeviationCoefficient();
-    const double baseDeviationAngle = drawer->DeviationAngle();
-    auto runSimplificationToFile = [&](const QString& outPath, int pct, PMesh::EdgeCost cost) {
-        QByteArray inBytes = inputPath.toLocal8Bit();
-        Mesh mesh(inBytes.data());
-        if (mesh.getNumTriangles() == 0)
-            return false;
+        const auto drawer = guiDoc->graphicsScene()->drawerDefault();
+        const double baseDeviationCoeff = drawer->DeviationCoefficient();
+        const double baseDeviationAngle = drawer->DeviationAngle();
+        auto runSimplificationToFile = [&](const QString& outPath, int pct, PMesh::EdgeCost cost) {
+            QByteArray inBytes = inputPath.toLocal8Bit();
+            Mesh mesh(inBytes.data());
+            if (mesh.getNumTriangles() == 0)
+                return false;
 
-        PMesh pmesh(&mesh, cost);
-        const int targetRemove = int(origTris * (pct / 100.0));
-        const int maxCollapses = pmesh.numCollapses();
-        int collapsesDone = 0;
-        while (collapsesDone < maxCollapses) {
-            if (!pmesh.collapseEdge())
-                break;
+            PMesh pmesh(&mesh, cost);
+            const int targetRemove = int(origTris * (pct / 100.0));
+            const int maxCollapses = pmesh.numCollapses();
+            int collapsesDone = 0;
+            while (collapsesDone < maxCollapses) {
+                if (!pmesh.collapseEdge())
+                    break;
 
-            ++collapsesDone;
-            const int removed = origTris - pmesh.numVisTris();
-            if (removed >= targetRemove)
-                break;
-        }
+                ++collapsesDone;
+                const int removed = origTris - pmesh.numVisTris();
+                if (removed >= targetRemove)
+                    break;
+            }
 
-        QByteArray outBytes = outPath.toLocal8Bit();
-        return pmesh.getMesh()->saveToFile(outBytes.data());
-        };
+            QByteArray outBytes = outPath.toLocal8Bit();
+            return pmesh.getMesh()->saveToFile(outBytes.data());
+            };
 
-    auto applyViewportPreviewFromReduction = [=](int reductionPct) {
-        // This is a display-only preview (coarser tessellation), final mesh is still
-        // computed by the simplification worker when user validates.
-        const double ratio = std::clamp(reductionPct / 100.0, 0.0, 0.99);
-        const double previewCoeff = baseDeviationCoeff * (1.0 + ratio * 8.0);
-        const double previewAngle = std::min(baseDeviationAngle * (1.0 + ratio * 4.0), 1.2);
+        auto applyViewportPreviewFromReduction = [=](int reductionPct) {
+            // This is a display-only preview (coarser tessellation), final mesh is still
+            // computed by the simplification worker when user validates.
+            const double ratio = std::clamp(reductionPct / 100.0, 0.0, 0.99);
+            const double previewCoeff = baseDeviationCoeff * (1.0 + ratio * 8.0);
+            const double previewAngle = std::min(baseDeviationAngle * (1.0 + ratio * 4.0), 1.2);
 
-        drawer->SetDeviationCoefficient(previewCoeff);
-        drawer->SetDeviationAngle(previewAngle);
+            drawer->SetDeviationCoefficient(previewCoeff);
+            drawer->SetDeviationAngle(previewAngle);
 
-        guiDoc->graphicsScene()->foreachDisplayedObject([&](const GraphicsObjectPtr& obj) {
-            guiDoc->graphicsScene()->recomputeObjectPresentation(obj);
+            guiDoc->graphicsScene()->foreachDisplayedObject([&](const GraphicsObjectPtr& obj) {
+                guiDoc->graphicsScene()->recomputeObjectPresentation(obj);
+                });
+            guiDoc->graphicsView().redraw();
+            };
+
+        QObject::connect(&dlg, &QDialog::finished, &dlg, [&](int) {
+            drawer->SetDeviationCoefficient(baseDeviationCoeff);
+            drawer->SetDeviationAngle(baseDeviationAngle);
+            guiDoc->graphicsScene()->foreachDisplayedObject([&](const GraphicsObjectPtr& obj) {
+                guiDoc->graphicsScene()->recomputeObjectPresentation(obj);
+                });
+            guiDoc->graphicsView().redraw();
+
+            if (previewWatcher->isRunning()) {
+                previewWatcher->cancel();
+                previewWatcher->waitForFinished();
+            }
             });
-        guiDoc->graphicsView().redraw();
-        };
 
-    QObject::connect(&dlg, &QDialog::finished, &dlg, [&](int) {
-        drawer->SetDeviationCoefficient(baseDeviationCoeff);
-        drawer->SetDeviationAngle(baseDeviationAngle);
-        guiDoc->graphicsScene()->foreachDisplayedObject([&](const GraphicsObjectPtr& obj) {
-            guiDoc->graphicsScene()->recomputeObjectPresentation(obj);
+        QObject::connect(previewWatcher, &QFutureWatcher<bool>::finished, &dlg, [&]() {
+            previewBusy = false;
+            const bool okPreview = previewWatcher->result();
+            labelPreviewStatus->setText(okPreview ? tr("Preview file updated") : tr("Preview generation failed"));
+
+            if (previewQueued && checkOpenPreview->isChecked()) {
+                previewQueued = false;
+                const int pct = queuedPreviewPct;
+
+                const QString tmpDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+                const QString previewPath = QDir(tmpDir).filePath(
+                    QString("mayo_simplify_preview_%1.%2")
+                    .arg(QFileInfo(inputPath).completeBaseName())
+                    .arg(inputExt)
+                );
+
+                previewBusy = true;
+                labelPreviewStatus->setText(tr("Generating preview..."));
+                previewWatcher->setFuture(QtConcurrent::run([=]() {
+                    return runSimplificationToFile(previewPath, pct, fixedEdgeCost);
+                    }));
+            }
             });
-        guiDoc->graphicsView().redraw();
-
-        if (previewWatcher->isRunning()) {
-            previewWatcher->cancel();
-            previewWatcher->waitForFinished();
-        }
-        });
-
-    QObject::connect(previewWatcher, &QFutureWatcher<bool>::finished, &dlg, [&]() {
-        previewBusy = false;
-        const bool okPreview = previewWatcher->result();
-        labelPreviewStatus->setText(okPreview ? tr("Preview file updated") : tr("Preview generation failed"));
-
-        if (previewQueued && checkOpenPreview->isChecked()) {
-            previewQueued = false;
-            const int pct = queuedPreviewPct;
-
-            const QString tmpDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-            const QString previewPath = QDir(tmpDir).filePath(
-                QString("mayo_simplify_preview_%1.%2")
-                .arg(QFileInfo(inputPath).completeBaseName())
-                .arg(inputExt)
-            );
-
-            previewBusy = true;
-            labelPreviewStatus->setText(tr("Generating preview..."));
-            previewWatcher->setFuture(QtConcurrent::run([=]() {
-                return runSimplificationToFile(previewPath, pct, fixedEdgeCost);
-                }));
-        }
-        });
 
 
-    auto updateResultLabel = [&]() {
-        const int pct = spinBox->value();
-        const int remaining = qMax(1, int(origTris * (1.0 - pct / 100.0)));
-        labelResult->setText(
-            tr("→  ~%1 triangles remaining  (%2% removed)")
+        auto updateResultLabel = [&]() {
+            const int pct = spinBox->value();
+            const int remaining = qMax(1, int(origTris * (1.0 - pct / 100.0)));
+            labelResult->setText(
+                tr("→  ~%1 triangles remaining  (%2% removed)")
                 .arg(remaining).arg(pct));
-    };
-    updateResultLabel();
-
-    QObject::connect(previewDebounce, &QTimer::timeout, &dlg, [&]() {
+            };
         updateResultLabel();
-        labelPreviewStatus->setText(tr("Generating preview..."));
-        applyViewportPreviewFromReduction(spinBox->value());
 
-        if (checkOpenPreview->isChecked()) {
-            const QString tmpDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-            const QString previewPath = QDir(tmpDir).filePath(
-                QString("mayo_simplify_preview_%1.%2")
-                .arg(QFileInfo(inputPath).completeBaseName())
-                .arg(inputExt)
-            );
+        QObject::connect(previewDebounce, &QTimer::timeout, &dlg, [&]() {
+            updateResultLabel();
+            const int pct = spinBox->value();
+            applyViewportPreviewFromReduction(spinBox->value());
 
-            const bool okPreview = runSimplificationToFile(previewPath, spinBox->value(),
-                fixedEdgeCost);
+            if (checkOpenPreview->isChecked()) {
+                if (previewBusy) {
+                    previewQueued = true;
+                    queuedPreviewPct = pct;
+                    labelPreviewStatus->setText(tr("Preview queued..."));
+                }
+                else {
+                    previewBusy = true;
+                    labelPreviewStatus->setText(tr("Generating preview..."));
+                    const QString tmpDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+                    const QString previewPath = QDir(tmpDir).filePath(
+                        QString("mayo_simplify_preview_%1.%2")
+                        .arg(QFileInfo(inputPath).completeBaseName())
+                        .arg(inputExt)
+                    );
+                    previewWatcher->setFuture(QtConcurrent::run([=]() {
+                        return runSimplificationToFile(previewPath, pct, fixedEdgeCost);
+                        }));
 
-            if (okPreview) {
-                labelPreviewStatus->setText(tr("Preview file updated: %1").arg(previewPath));
+                }
                 return;
             }
 
-            labelPreviewStatus->setText(tr("Preview generation failed"));
+            labelPreviewStatus->setText(tr("Preview updated"));
+            });
+
+        // Sync slider ↔ spinbox
+        QObject::connect(slider, &QSlider::valueChanged,
+            spinBox, &QSpinBox::setValue);
+        QObject::connect(spinBox, qOverload<int>(&QSpinBox::valueChanged),
+            slider, &QSlider::setValue);
+        QObject::connect(spinBox, qOverload<int>(&QSpinBox::valueChanged),
+            &dlg, [=](int) {
+                labelPreviewStatus->setText(tr("Generating preview..."));
+                previewDebounce->start(180);
+            });
+
+        auto* sliderRow = new QHBoxLayout;
+        sliderRow->addWidget(slider);
+        sliderRow->addWidget(spinBox);
+
+        auto* btnBox = new QDialogButtonBox(
+            QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
+        QObject::connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+        QObject::connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+        auto* layout = new QVBoxLayout(&dlg);
+        layout->setSpacing(10);
+        layout->setContentsMargins(16, 16, 16, 16);
+        layout->addWidget(labelFile);
+        layout->addSpacing(6);
+        layout->addWidget(labelReduction);
+        layout->addLayout(sliderRow);
+        layout->addWidget(labelResult);
+        layout->addWidget(labelPreviewStatus);
+        layout->addWidget(checkOpenPreview);
+        layout->addSpacing(6);
+        layout->addWidget(btnBox);
+
+        if (dlg.exec() != QDialog::Accepted)
             return;
-        }
 
-        labelPreviewStatus->setText(tr("Preview updated"));
-        });
+        const int reductionPct = spinBox->value();
+        const PMesh::EdgeCost edgeCost = fixedEdgeCost;
 
-    // Sync slider ↔ spinbox
-    QObject::connect(slider,  &QSlider::valueChanged,
-                     spinBox, &QSpinBox::setValue);
-    QObject::connect(spinBox, qOverload<int>(&QSpinBox::valueChanged),
-                     slider,  &QSlider::setValue);
-    QObject::connect(spinBox, qOverload<int>(&QSpinBox::valueChanged),
-                    &dlg, [=](int) {
-                        labelPreviewStatus->setText(tr("Generating preview..."));
-                        previewDebounce->start(180);
-                    });
+        // ── 4. Ask where to save ──────────────────────────────────────────────
+        QString outFilter;
+        if (inputExt == "stl") outFilter = tr("STL Files (*.stl)");
+        else if (inputExt == "ply") outFilter = tr("PLY Files (*.ply)");
+        else                        outFilter = tr("OBJ Files (*.obj)");
 
-    auto* sliderRow = new QHBoxLayout;
-    sliderRow->addWidget(slider);
-    sliderRow->addWidget(spinBox);
+        const QString defaultOut =
+            QFileInfo(inputPath).absolutePath() + "/" +
+            QFileInfo(inputPath).completeBaseName() +
+            QString("_simplified_%1pct.").arg(reductionPct) + inputExt;
 
-    auto* btnBox = new QDialogButtonBox(
-        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
-    QObject::connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
-    QObject::connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+        const QString outputPath = QFileDialog::getSaveFileName(
+            this->widgetMain(),
+            tr("Save simplified mesh as"),
+            defaultOut,
+            outFilter + tr(";;All Files (*)")
+        );
 
-    auto* layout = new QVBoxLayout(&dlg);
-    layout->setSpacing(10);
-    layout->setContentsMargins(16, 16, 16, 16);
-    layout->addWidget(labelFile);
-    layout->addSpacing(6);
-    layout->addWidget(labelReduction);
-    layout->addLayout(sliderRow);
-    layout->addWidget(labelResult);
-    layout->addWidget(labelPreviewStatus);
-    layout->addWidget(checkOpenPreview);
-    layout->addSpacing(6);
-    layout->addWidget(btnBox);
+        if (outputPath.isEmpty())
+            return;
 
-    if (dlg.exec() != QDialog::Accepted)
-        return;
+        // ── 5. Run on background thread ───────────────────────────────────────
+        m_isRunning = true;
 
-    const int reductionPct = spinBox->value();
-    const PMesh::EdgeCost edgeCost = fixedEdgeCost;
+        QThread* thread = new QThread(this);
+        QWidget* parentWgt = this->widgetMain();
 
-    // ── 4. Ask where to save ──────────────────────────────────────────────
-    QString outFilter;
-    if (inputExt == "stl") outFilter = tr("STL Files (*.stl)");
-    else if (inputExt == "ply") outFilter = tr("PLY Files (*.ply)");
-    else                        outFilter = tr("OBJ Files (*.obj)");
+        // Capture by value — everything the lambda needs
+        const QString  inPath = inputPath;
+        const QString  outPath = outputPath;
+        const int      pct = reductionPct;
+        const PMesh::EdgeCost cost = edgeCost;
+        const int      origTriCount = origTris;
 
-    const QString defaultOut =
-        QFileInfo(inputPath).absolutePath() + "/" +
-        QFileInfo(inputPath).completeBaseName() +
-        QString("_simplified_%1pct.").arg(reductionPct) + inputExt;
+        connect(thread, &QThread::started, this, [=]() {
 
-    const QString outputPath = QFileDialog::getSaveFileName(
-        this->widgetMain(),
-        tr("Save simplified mesh as"),
-        defaultOut,
-        outFilter + tr(";;All Files (*)")
-    );
+            // ── a) Load mesh ──────────────────────────────────────────────────
+            QByteArray inBytes = inPath.toLocal8Bit();
+            Mesh* mesh = new Mesh(inBytes.data());
 
-    if (outputPath.isEmpty())
-        return;
+            if (mesh->getNumTriangles() == 0) {
+                delete mesh;
+                QMetaObject::invokeMethod(qApp, [=]() {
+                    QMessageBox::critical(parentWgt, tr("Simplify Mesh"),
+                        tr("Failed to load mesh on worker thread:\n%1").arg(inPath));
+                    }, Qt::QueuedConnection);
+                QMetaObject::invokeMethod(thread, "quit", Qt::QueuedConnection);
+                return;
+            }
 
-    // ── 5. Run on background thread ───────────────────────────────────────
-    m_isRunning = true;
+            // ── b) Build progressive mesh & collapse edges ────────────────────
+            PMesh* pmesh = new PMesh(mesh, cost);
 
-    QThread* thread = new QThread(this);
-    QWidget* parentWgt = this->widgetMain();
+            // How many collapses do we need for the requested reduction?
+            // Each collapse removes roughly 2 triangles on average.
+            // Target: origTris * pct/100 triangles to remove.
+            const int targetRemove = int(origTriCount * (pct / 100.0));
+            const int maxCollapses = pmesh->numCollapses();
+            // Each collapse in the list removes approximately 2 tris
+            // Use numVisTris() to check live count
+            int collapsesDone = 0;
+            while (collapsesDone < maxCollapses) {
+                const int visBefore = pmesh->numVisTris();
+                if (!pmesh->collapseEdge()) break;
+                collapsesDone++;
+                const int removed = origTriCount - pmesh->numVisTris();
+                if (removed >= targetRemove) break;
+            }
 
-    // Capture by value — everything the lambda needs
-    const QString  inPath = inputPath;
-    const QString  outPath = outputPath;
-    const int      pct = reductionPct;
-    const PMesh::EdgeCost cost = edgeCost;
-    const int      origTriCount = origTris;
+            // ── c) Save result ────────────────────────────────────────────────
+            const int finalTris = pmesh->numVisTris();
 
-    connect(thread, &QThread::started, this, [=]() {
+            // saveToFile works on the internal _newmesh which reflects
+            // the current collapse state via active flags on triangles.
+            // We call it through the Mesh pointer inside PMesh.
+            QByteArray outBytes = outPath.toLocal8Bit();
+            const bool saved = pmesh->getMesh()->saveToFile(outBytes.data());
 
-        // ── a) Load mesh ──────────────────────────────────────────────────
-        QByteArray inBytes = inPath.toLocal8Bit();
-        Mesh* mesh = new Mesh(inBytes.data());
-
-        if (mesh->getNumTriangles() == 0) {
+            delete pmesh;
             delete mesh;
+
+            // ── d) Report ─────────────────────────────────────────────────────
             QMetaObject::invokeMethod(qApp, [=]() {
-                QMessageBox::critical(parentWgt, tr("Simplify Mesh"),
-                    tr("Failed to load mesh on worker thread:\n%1").arg(inPath));
-            }, Qt::QueuedConnection);
-            QMetaObject::invokeMethod(thread, "quit", Qt::QueuedConnection);
-            return;
-        }
-
-        // ── b) Build progressive mesh & collapse edges ────────────────────
-        PMesh* pmesh = new PMesh(mesh, cost);
-
-        // How many collapses do we need for the requested reduction?
-        // Each collapse removes roughly 2 triangles on average.
-        // Target: origTris * pct/100 triangles to remove.
-        const int targetRemove = int(origTriCount * (pct / 100.0));
-        const int maxCollapses = pmesh->numCollapses();
-        // Each collapse in the list removes approximately 2 tris
-        // Use numVisTris() to check live count
-        int collapsesDone = 0;
-        while (collapsesDone < maxCollapses) {
-            const int visBefore = pmesh->numVisTris();
-            if (!pmesh->collapseEdge()) break;
-            collapsesDone++;
-            const int removed = origTriCount - pmesh->numVisTris();
-            if (removed >= targetRemove) break;
-        }
-
-        // ── c) Save result ────────────────────────────────────────────────
-        const int finalTris = pmesh->numVisTris();
-
-        // saveToFile works on the internal _newmesh which reflects
-        // the current collapse state via active flags on triangles.
-        // We call it through the Mesh pointer inside PMesh.
-        QByteArray outBytes = outPath.toLocal8Bit();
-        const bool saved = pmesh->getMesh()->saveToFile(outBytes.data());
-
-        delete pmesh;
-        delete mesh;
-
-        // ── d) Report ─────────────────────────────────────────────────────
-        QMetaObject::invokeMethod(qApp, [=]() {
-            if (saved) {
-                QMessageBox::information(parentWgt,
-                    tr("Simplify Mesh"),
-                    tr("Simplification complete!\n\n"
-                       "Original triangles : %1\n"
-                       "Remaining triangles: %2\n"
-                       "Reduction          : %3%\n\n"
-                       "Saved to:\n%4")
+                if (saved) {
+                    QMessageBox::information(parentWgt,
+                        tr("Simplify Mesh"),
+                        tr("Simplification complete!\n\n"
+                            "Original triangles : %1\n"
+                            "Remaining triangles: %2\n"
+                            "Reduction          : %3%\n\n"
+                            "Saved to:\n%4")
                         .arg(origTriCount)
                         .arg(finalTris)
                         .arg(pct)
                         .arg(outPath));
-            }
- else {
-  QMessageBox::critical(parentWgt,
-      tr("Simplify Mesh"),
-      tr("Simplification succeeded but failed to save file:\n%1").arg(outPath));
-}
-}, Qt::QueuedConnection);
+                }
+                else {
+                    QMessageBox::critical(parentWgt,
+                        tr("Simplify Mesh"),
+                        tr("Simplification succeeded but failed to save file:\n%1").arg(outPath));
+                }
+                }, Qt::QueuedConnection);
 
-QMetaObject::invokeMethod(thread, "quit", Qt::QueuedConnection);
-});
+            QMetaObject::invokeMethod(thread, "quit", Qt::QueuedConnection);
+            });
 
-connect(thread, &QThread::finished, this, [this]() {
-    m_isRunning = false;
-});
-connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+        connect(thread, &QThread::finished, this, [this]() {
+            m_isRunning = false;
+            });
+        connect(thread, &QThread::finished, thread, &QObject::deleteLater);
 
-thread->start();
-}
-
-
-/////////////////////////////////////////////////////////////////////////////////
-// 
-// 
-// 
-////////////////////////////////////////////////////////////////////////////////
-// ─────────────────────────────────────────────────────────────────────────────
-//  Constructor
-// ─────────────────────────────────────────────────────────────────────────────
-CommandHollowing::CommandHollowing(IAppContext* context)
-    : Command(context)
-{
-    auto* action = new QAction(this);
-    action->setText(Command::tr("Hollow Mesh"));
-    action->setToolTip(Command::tr(
-        "Create a hollow version of the STL mesh by adding an inward-offset inner shell"));
-    this->setAction(action);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  execute()
-// ─────────────────────────────────────────────────────────────────────────────
-void CommandHollowing::execute()
-{
-    if (m_isRunning)
-        return;
-
-    // ── 1. Get the currently open document ───────────────────────────────────
-    GuiDocument* guiDoc = this->currentGuiDocument();
-    if (!guiDoc) {
-        QMessageBox::warning(this->widgetMain(),
-            tr("Hollow Mesh"),
-            tr("No document is currently open.\n"
-                "Please open an STL file first."));
-        return;
+        thread->start();
     }
 
-    const FilePath filePath = guiDoc->document()->filePath();
-    if (filePath.empty()) {
-        QMessageBox::warning(this->widgetMain(),
-            tr("Hollow Mesh"),
-            tr("Current document has no file path associated with it."));
-        return;
+
+    /////////////////////////////////////////////////////////////////////////////////
+    // 
+    // 
+    // 
+    ////////////////////////////////////////////////////////////////////////////////
+    // ─────────────────────────────────────────────────────────────────────────────
+    //  Constructor
+    // ─────────────────────────────────────────────────────────────────────────────
+    CommandHollowing::CommandHollowing(IAppContext* context)
+        : Command(context)
+    {
+        auto* action = new QAction(this);
+        action->setText(Command::tr("Hollow Mesh"));
+        action->setToolTip(Command::tr(
+            "Create a hollow version of the STL mesh by adding an inward-offset inner shell"));
+        this->setAction(action);
     }
 
-    const QString inputPath = QString::fromStdString(filePath.u8string());
-    const QString inputExt = QFileInfo(inputPath).suffix().toLower();
-    const QString inputName = QFileInfo(inputPath).fileName();
+    // ─────────────────────────────────────────────────────────────────────────────
+    //  execute()
+    // ─────────────────────────────────────────────────────────────────────────────
+    void CommandHollowing::execute()
+    {
+        if (m_isRunning)
+            return;
 
-    // Hollowing only supports STL
-    if (inputExt != "stl") {
-        QMessageBox::warning(this->widgetMain(),
-            tr("Hollow Mesh"),
-            tr("Unsupported file type: .%1\n"
-                "Only STL files can be hollowed.").arg(inputExt));
-        return;
-    }
+        // ── 1. Get the currently open document ───────────────────────────────────
+        GuiDocument* guiDoc = this->currentGuiDocument();
+        if (!guiDoc) {
+            QMessageBox::warning(this->widgetMain(),
+                tr("Hollow Mesh"),
+                tr("No document is currently open.\n"
+                    "Please open an STL file first."));
+            return;
+        }
 
-    // ── 2. Load triangles now so we can show real triangle count in dialog ───
-    std::vector<StlHollowing::Triangle> triangles;
-    try {
-        triangles = StlHollowing::loadStlFile(inputPath.toStdString());
-    }
-    catch (const std::exception& ex) {
-        QMessageBox::critical(this->widgetMain(),
-            tr("Hollow Mesh"),
-            tr("Failed to load STL file:\n%1\n\nReason: %2")
-            .arg(inputPath)
-            .arg(QString::fromStdString(ex.what())));
-        return;
-    }
+        const FilePath filePath = guiDoc->document()->filePath();
+        if (filePath.empty()) {
+            QMessageBox::warning(this->widgetMain(),
+                tr("Hollow Mesh"),
+                tr("Current document has no file path associated with it."));
+            return;
+        }
 
-    if (triangles.empty()) {
-        QMessageBox::critical(this->widgetMain(),
-            tr("Hollow Mesh"),
-            tr("STL file contains no triangles:\n%1\n\n"
-                "File may be empty or corrupt.").arg(inputPath));
-        return;
-    }
+        const QString inputPath = QString::fromStdString(filePath.u8string());
+        const QString inputExt = QFileInfo(inputPath).suffix().toLower();
+        const QString inputName = QFileInfo(inputPath).fileName();
 
-    const bool   isBinary = StlHollowing::isFileBinary(inputPath.toStdString());
-    const int    origTris = static_cast<int>(triangles.size());
+        // Hollowing only supports STL
+        if (inputExt != "stl") {
+            QMessageBox::warning(this->widgetMain(),
+                tr("Hollow Mesh"),
+                tr("Unsupported file type: .%1\n"
+                    "Only STL files can be hollowed.").arg(inputExt));
+            return;
+        }
 
-    // ── 3. Dialog ─────────────────────────────────────────────────────────────
-    QDialog dlg(this->widgetMain());
-    dlg.setWindowTitle(tr("Hollow Mesh"));
-    dlg.setMinimumWidth(420);
-
-    // Info label
-    auto* labelFile = new QLabel(
-        tr("<b>File:</b> %1<br><b>Original triangles:</b> %2")
-        .arg(inputName)
-        .arg(origTris),
-        &dlg);
-    labelFile->setWordWrap(true);
-
-    // Wall thickness spin box
-    auto* labelThickness = new QLabel(tr("Wall thickness:"), &dlg);
-
-    auto* spinThickness = new QDoubleSpinBox(&dlg);
-    spinThickness->setRange(0.01, 100.0);
-    spinThickness->setSingleStep(0.1);
-    spinThickness->setDecimals(3);
-    spinThickness->setValue(0.5);
-    spinThickness->setSuffix(" mm");
-
-    auto* thicknessRow = new QHBoxLayout;
-    thicknessRow->addWidget(labelThickness);
-    thicknessRow->addWidget(spinThickness);
-
-    // Output triangle count label (updates live as user changes thickness)
-    auto* labelResult = new QLabel(&dlg);
-    auto updateResultLabel = [&]() {
-        labelResult->setText(
-            tr("→  Output triangles: ~%1  (outer shell + inner shell)")
-            .arg(origTris * 2));
-        };
-    updateResultLabel();
-
-    // Info note
-    auto* labelInfo = new QLabel(
-        tr("The outer shell keeps the original geometry.\n"
-            "An inner shell is created by offsetting each triangle\n"
-            "inward along its face normal by the chosen thickness."),
-        &dlg);
-    labelInfo->setWordWrap(true);
-    labelInfo->setStyleSheet(QStringLiteral("color:#666;"));
-
-    auto* btnBox = new QDialogButtonBox(
-        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
-    QObject::connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
-    QObject::connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
-
-    auto* layout = new QVBoxLayout(&dlg);
-    layout->setSpacing(10);
-    layout->setContentsMargins(16, 16, 16, 16);
-    layout->addWidget(labelFile);
-    layout->addSpacing(6);
-    layout->addLayout(thicknessRow);
-    layout->addWidget(labelResult);
-    layout->addWidget(labelInfo);
-    layout->addSpacing(6);
-    layout->addWidget(btnBox);
-
-    if (dlg.exec() != QDialog::Accepted)
-        return;
-
-    const float thickness = static_cast<float>(spinThickness->value());
-
-    // ── 4. Ask where to save ──────────────────────────────────────────────────
-    const QString defaultOut =
-        QFileInfo(inputPath).absolutePath() + "/" +
-        QFileInfo(inputPath).completeBaseName() +
-        QString("_hollow_%1mm.stl").arg(thickness, 0, 'f', 2);
-
-    const QString outputPath = QFileDialog::getSaveFileName(
-        this->widgetMain(),
-        tr("Save hollow STL as"),
-        defaultOut,
-        tr("STL Files (*.stl);;All Files (*)")
-    );
-
-    if (outputPath.isEmpty())
-        return;
-
-    // ── 5. Run on background thread ───────────────────────────────────────────
-    m_isRunning = true;
-
-    QThread* thread = new QThread(this);
-    QWidget* parentWgt = this->widgetMain();
-
-    // Capture everything by value for the worker lambda
-    const std::vector<StlHollowing::Triangle> trisCapture = std::move(triangles);
-    const QString outPath = outputPath;
-    const bool    binFmt = isBinary;
-    const float   thick = thickness;
-    const int     origTriCount = origTris;
-
-    connect(thread, &QThread::started, this, [=]() {
-
-        // ── a) Build hollow mesh ──────────────────────────────────────────────
-        std::vector<StlHollowing::Triangle> hollowed =
-            StlHollowing::buildHollowMesh(trisCapture, thick);
-
-        const int finalTris = static_cast<int>(hollowed.size());
-
-        // ── b) Save result ────────────────────────────────────────────────────
-        bool    saved = false;
-        QString errorMsg;
+        // ── 2. Load triangles now so we can show real triangle count in dialog ───
+        std::vector<StlHollowing::Triangle> triangles;
         try {
-            StlHollowing::saveStlFile(outPath.toStdString(), hollowed, binFmt);
-            saved = true;
+            triangles = StlHollowing::loadStlFile(inputPath.toStdString());
         }
         catch (const std::exception& ex) {
-            errorMsg = QString::fromStdString(ex.what());
+            QMessageBox::critical(this->widgetMain(),
+                tr("Hollow Mesh"),
+                tr("Failed to load STL file:\n%1\n\nReason: %2")
+                .arg(inputPath)
+                .arg(QString::fromStdString(ex.what())));
+            return;
         }
 
-        // ── c) Report ─────────────────────────────────────────────────────────
-        QMetaObject::invokeMethod(qApp, [=]() {
-            if (saved) {
-                QMessageBox::information(parentWgt,
-                    tr("Hollow Mesh"),
-                    tr("Hollowing complete!\n\n"
-                        "Original triangles : %1\n"
-                        "Output triangles   : %2  (outer + inner shells)\n"
-                        "Wall thickness     : %3 mm\n\n"
-                        "Saved to:\n%4")
-                    .arg(origTriCount)
-                    .arg(finalTris)
-                    .arg(thick, 0, 'f', 3)
-                    .arg(outPath));
+        if (triangles.empty()) {
+            QMessageBox::critical(this->widgetMain(),
+                tr("Hollow Mesh"),
+                tr("STL file contains no triangles:\n%1\n\n"
+                    "File may be empty or corrupt.").arg(inputPath));
+            return;
+        }
+
+        const bool   isBinary = StlHollowing::isFileBinary(inputPath.toStdString());
+        const int    origTris = static_cast<int>(triangles.size());
+
+        // ── 3. Dialog ─────────────────────────────────────────────────────────────
+        QDialog dlg(this->widgetMain());
+        dlg.setWindowTitle(tr("Hollow Mesh"));
+        dlg.setMinimumWidth(420);
+
+        // Info label
+        auto* labelFile = new QLabel(
+            tr("<b>File:</b> %1<br><b>Original triangles:</b> %2")
+            .arg(inputName)
+            .arg(origTris),
+            &dlg);
+        labelFile->setWordWrap(true);
+
+        auto* labelInnerOffset = new QLabel(tr("Inner offset:"), &dlg);
+        auto* sliderInnerOffset = new QSlider(Qt::Horizontal, &dlg);
+        sliderInnerOffset->setRange(1, 10000);
+        sliderInnerOffset->setValue(500);
+        auto* spinInnerOffset = new QDoubleSpinBox(&dlg);
+        spinInnerOffset->setRange(0.001, 100.0);
+        spinInnerOffset->setSingleStep(0.1);
+        spinInnerOffset->setDecimals(3);
+        spinInnerOffset->setValue(0.5);
+        spinInnerOffset->setSuffix(" mm");
+
+        auto* labelOuterOffset = new QLabel(tr("Outer offset:"), &dlg);
+        auto* sliderOuterOffset = new QSlider(Qt::Horizontal, &dlg);
+        sliderOuterOffset->setRange(0, 10000);
+        sliderOuterOffset->setValue(0);
+        auto* spinOuterOffset = new QDoubleSpinBox(&dlg);
+        spinOuterOffset->setRange(0.0, 100.0);
+        spinOuterOffset->setSingleStep(0.1);
+        spinOuterOffset->setDecimals(3);
+        spinOuterOffset->setValue(0.0);
+        spinOuterOffset->setSuffix(" mm");
+
+        auto* innerOffsetRow = new QHBoxLayout;
+        innerOffsetRow->addWidget(labelInnerOffset);
+        innerOffsetRow->addWidget(sliderInnerOffset);
+        innerOffsetRow->addWidget(spinInnerOffset);
+
+        auto* outerOffsetRow = new QHBoxLayout;
+        outerOffsetRow->addWidget(labelOuterOffset);
+        outerOffsetRow->addWidget(sliderOuterOffset);
+        outerOffsetRow->addWidget(spinOuterOffset);
+
+        const auto syncSliderFromSpin = [](QSlider* slider, double valueMm) {
+            slider->setValue(qRound(valueMm * 1000.0));
+            };
+        const auto mmFromSlider = [](int sliderValue) {
+            return sliderValue / 1000.0;
+            };
+        QObject::connect(sliderInnerOffset, &QSlider::valueChanged, &dlg, [=](int value) {
+            QSignalBlocker guard(spinInnerOffset);
+            spinInnerOffset->setValue(mmFromSlider(value));
+            });
+        QObject::connect(spinInnerOffset, qOverload<double>(&QDoubleSpinBox::valueChanged), &dlg, [=](double value) {
+            QSignalBlocker guard(sliderInnerOffset);
+            syncSliderFromSpin(sliderInnerOffset, value);
+            });
+
+        QObject::connect(sliderOuterOffset, &QSlider::valueChanged, &dlg, [=](int value) {
+            QSignalBlocker guard(spinOuterOffset);
+            spinOuterOffset->setValue(mmFromSlider(value));
+            });
+        QObject::connect(spinOuterOffset, qOverload<double>(&QDoubleSpinBox::valueChanged), &dlg, [=](double value) {
+            QSignalBlocker guard(sliderOuterOffset);
+            syncSliderFromSpin(sliderOuterOffset, value);
+            });
+
+        // Output triangle count label (updates live as user changes thickness)
+        auto* labelResult = new QLabel(&dlg);
+        auto updateResultLabel = [&]() {
+            labelResult->setText(
+                tr("→  Output triangles: ~%1  (outer shell + inner shell)\n"
+                    "    Inner: %2 mm, Outer: %3 mm")
+                .arg(origTris * 2)
+                .arg(spinInnerOffset->value(), 0, 'f', 3)
+                .arg(spinOuterOffset->value(), 0, 'f', 3));
+            };
+        updateResultLabel();
+
+
+        QObject::connect(spinInnerOffset, qOverload<double>(&QDoubleSpinBox::valueChanged), &dlg, [&](double) {
+            updateResultLabel();
+            });
+        QObject::connect(spinOuterOffset, qOverload<double>(&QDoubleSpinBox::valueChanged), &dlg, [&](double) {
+            updateResultLabel();
+            });
+
+        // Info note
+        auto* labelInfo = new QLabel(
+            tr("The outer shell can be independently offset outward.\n"
+                "The inner shell is offset inward and winding is reversed.\n"
+                "Use the sliders to tune inner and outer offsets."),
+            &dlg);
+        labelInfo->setWordWrap(true);
+        labelInfo->setStyleSheet(QStringLiteral("color:#666;"));
+
+        auto* btnBox = new QDialogButtonBox(
+            QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
+        QObject::connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+        QObject::connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+        auto* layout = new QVBoxLayout(&dlg);
+        layout->setSpacing(10);
+        layout->setContentsMargins(16, 16, 16, 16);
+        layout->addWidget(labelFile);
+        layout->addSpacing(6);
+        layout->addLayout(innerOffsetRow);
+        layout->addLayout(outerOffsetRow);
+        layout->addWidget(labelResult);
+        layout->addWidget(labelInfo);
+        layout->addSpacing(6);
+        layout->addWidget(btnBox);
+
+        if (dlg.exec() != QDialog::Accepted)
+            return;
+
+        const float innerOffset = static_cast<float>(spinInnerOffset->value());
+        const float outerOffset = static_cast<float>(spinOuterOffset->value());
+
+        // ── 4. Ask where to save ──────────────────────────────────────────────────
+        const QString defaultOut =
+            QFileInfo(inputPath).absolutePath() + "/" +
+            QFileInfo(inputPath).completeBaseName() +
+            QString("_hollow_i%1_o%2mm.stl")
+            .arg(innerOffset, 0, 'f', 2)
+            .arg(outerOffset, 0, 'f', 2);
+
+        const QString outputPath = QFileDialog::getSaveFileName(
+            this->widgetMain(),
+            tr("Save hollow STL as"),
+            defaultOut,
+            tr("STL Files (*.stl);;All Files (*)")
+        );
+
+        if (outputPath.isEmpty())
+            return;
+
+        // ── 5. Run on background thread ───────────────────────────────────────────
+        m_isRunning = true;
+
+        QThread* thread = new QThread(this);
+        QWidget* parentWgt = this->widgetMain();
+
+        // Capture everything by value for the worker lambda
+        const std::vector<StlHollowing::Triangle> trisCapture = std::move(triangles);
+        const QString outPath = outputPath;
+        const bool    binFmt = isBinary;
+        const float   innerOff = innerOffset;
+        const float   outerOff = outerOffset;
+        const int     origTriCount = origTris;
+
+        connect(thread, &QThread::started, this, [=]() {
+
+            // ── a) Build hollow mesh ──────────────────────────────────────────────
+            std::vector<StlHollowing::Triangle> hollowed =
+                StlHollowing::buildHollowMeshWithOffsets(trisCapture, innerOff, outerOff);
+
+            const int finalTris = static_cast<int>(hollowed.size());
+
+            // ── b) Save result ────────────────────────────────────────────────────
+            bool    saved = false;
+            QString errorMsg;
+            try {
+                StlHollowing::saveStlFile(outPath.toStdString(), hollowed, binFmt);
+                saved = true;
             }
-            else {
-                QMessageBox::critical(parentWgt,
-                    tr("Hollow Mesh"),
-                    tr("Hollowing succeeded but failed to save file:\n%1\n\nReason: %2")
-                    .arg(outPath)
-                    .arg(errorMsg));
+            catch (const std::exception& ex) {
+                errorMsg = QString::fromStdString(ex.what());
             }
-            }, Qt::QueuedConnection);
 
-        QMetaObject::invokeMethod(thread, "quit", Qt::QueuedConnection);
-        });
+            // ── c) Report ─────────────────────────────────────────────────────────
+            QMetaObject::invokeMethod(qApp, [=]() {
+                if (saved) {
+                    QMessageBox::information(parentWgt,
+                        tr("Hollow Mesh"),
+                        tr("Hollowing complete!\n\n"
+                            "Original triangles : %1\n"
+                            "Output triangles   : %2  (outer + inner shells)\n"
+                            "Inner offset       : %3 mm\n"
+                            "Outer offset       : %4 mm\n\n"
+                            "Saved to:\n%5")
+                        .arg(origTriCount)
+                        .arg(finalTris)
+                        .arg(innerOff, 0, 'f', 3)
+                        .arg(outerOff, 0, 'f', 3)
+                        .arg(outPath));
+                }
+                else {
+                    QMessageBox::critical(parentWgt,
+                        tr("Hollow Mesh"),
+                        tr("Hollowing succeeded but failed to save file:\n%1\n\nReason: %2")
+                        .arg(outPath)
+                        .arg(errorMsg));
+                }
+                }, Qt::QueuedConnection);
 
-    connect(thread, &QThread::finished, this, [this]() {
-        m_isRunning = false;
-        });
-    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+            QMetaObject::invokeMethod(thread, "quit", Qt::QueuedConnection);
+            });
 
-    thread->start();
-}
+        connect(thread, &QThread::finished, this, [this]() {
+            m_isRunning = false;
+            });
+        connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+
+        thread->start();
+    }
+
+
+    //////////////////////////////////////////////////////////////////////////
+    //
+    //
+    //Statistic
+    //
+    ////////////////////////////////////////////////////////////////////////////
+
+    CommandMeshRepairStatistics::CommandMeshRepairStatistics(IAppContext* context)
+        : Command(context)
+    {
+        auto action = new QAction(this);
+        action->setText(tr("Statistics + Auto Repair"));
+        action->setToolTip(tr("Show mesh statistics and run automatic hole repair"));
+        setAction(action);
+        connect(action, &QAction::triggered, this, &CommandMeshRepairStatistics::execute);
+    }
+
+    void CommandMeshRepairStatistics::execute()
+    {
+        if (m_isRunning)
+            return;
+
+        GuiDocument* guiDoc = this->currentGuiDocument();
+        if (!guiDoc)
+            return;
+
+        const FilePath filePath = guiDoc->document()->filePath();
+        if (filePath.empty())
+            return;
+
+        const QString inPath = QString::fromStdString(filePath.u8string());
+        QWidget* parent = this->widgetMain();
+
+        std::string errorMessage;
+        const auto stats = computeMeshRepairStatsFromStl(inPath.toStdString(), &errorMessage);
+        if (!stats) {
+            QMessageBox::warning(parent, tr("Mesh Statistics"),
+                tr("Could not compute statistics.\n%1").arg(QString::fromStdString(errorMessage)));
+            return;
+        }
+
+        QDialog dlg(parent);
+        dlg.setWindowTitle(tr("Koshika Statistics"));
+        auto* layout = new QVBoxLayout(&dlg);
+
+        auto* label = new QLabel(&dlg);
+        label->setText(tr("Triangles: %1\n"
+            "Unique Vertices: %2\n"
+            "Duplicate Vertices: %3\n"
+            "Holes: %4\n"
+            "Non-manifold Edges: %5\n"
+            "Self-intersections: %6")
+            .arg(stats->triangleCount)
+            .arg(stats->vertexCount)
+            .arg(stats->duplicateVertices)
+            .arg(stats->holeCount)
+            .arg(stats->nonManifoldEdges)
+            .arg(stats->selfIntersectionPairs));
+        layout->addWidget(label);
+
+        auto* btnAutoRepair = new QPushButton(tr("Auto Repair"), &dlg);
+        auto* btnClose = new QPushButton(tr("Close"), &dlg);
+        auto* rowButtons = new QHBoxLayout;
+        rowButtons->addWidget(btnAutoRepair);
+        rowButtons->addWidget(btnClose);
+        layout->addLayout(rowButtons);
+
+        connect(btnClose, &QPushButton::clicked, &dlg, &QDialog::reject);
+        connect(btnAutoRepair, &QPushButton::clicked, &dlg, [=, this]() {
+            if (m_isRunning)
+                return;
+
+            const QString outPath = QFileDialog::getSaveFileName(
+                parent,
+                tr("Save repaired STL"),
+                QFileInfo(inPath).completeBaseName() + "_repaired.stl",
+                tr("STL Files (*.stl);;All Files (*)")
+            );
+            if (outPath.isEmpty())
+                return;
+
+            m_isRunning = true;
+            QThread* thread = new QThread(this);
+            auto* worker = new StlHoleFillingWorker();
+            worker->moveToThread(thread);
+
+            connect(thread, &QThread::started, this, [=]() {
+                QMetaObject::invokeMethod(worker, "process",
+                    Qt::QueuedConnection,
+                    Q_ARG(QString, inPath),
+                    Q_ARG(QString, outPath));
+                });
+
+            connect(worker, &StlHoleFillingWorker::finished, this, [=]() {
+                QMessageBox::information(parent, tr("Auto Repair"),
+                    tr("Repaired STL written to:\n%1").arg(outPath));
+                m_isRunning = false;
+                thread->quit();
+                });
+
+            connect(worker, &StlHoleFillingWorker::error, this, [=](const QString& msg) {
+                QMessageBox::critical(parent, tr("Auto Repair Error"), msg);
+                m_isRunning = false;
+                thread->quit();
+                });
+
+            connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+            connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+            thread->start();
+            });
+
+        dlg.exec();
+    }
+
 } // namespace Mayo
