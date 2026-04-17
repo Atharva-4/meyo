@@ -165,7 +165,6 @@ namespace Mayo {
         // "koshika" commands
         this->addCommand<CommandCutting>();
         this->addCommand<CommandMergeSTL>();
-        // Add the hole-filling commands so their QAction can be used in menus
         this->addCommand<CommandHoleFillingFull>();
         this->addCommand<CommandHoleFillingSelected>();
         //this->addCommand<CommandPointToSurface>();
@@ -174,6 +173,8 @@ namespace Mayo {
         this->addCommand<CommandSimplification>();
         this->addCommand<CommandHollowing>();
         this->addCommand<CommandMeshRepairStatistics>();
+        this->addCommand<CommandMeshAutoRepair>();
+		this->addCommand<CommandWatertightMesh>();
 
 
         // Add the 3DXML conversion command so its QAction can be used in menus
@@ -264,8 +265,13 @@ namespace Mayo {
             fnAddAction(menu, CommandSimplification::Name);
             fnAddAction(menu, CommandHollowing::Name);
 
-            QMenu* menuStats = menu->addMenu(tr("Statistics"));
-            fnAddAction(menuStats, CommandMeshRepairStatistics::Name);
+            fnAddAction(menu, CommandMeshRepairStatistics::Name);
+            fnAddAction(menu, CommandMeshAutoRepair::Name);
+
+
+            fnAddAction(menu, CommandWatertightMesh::Name);
+            
+
 
             //fnAddAction(menu, CommandConvert3DXML::Name);
 

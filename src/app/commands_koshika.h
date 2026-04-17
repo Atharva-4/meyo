@@ -113,4 +113,28 @@ namespace Mayo {
         bool m_isRunning = false;
     };
 
+    class CommandMeshAutoRepair : public Command {
+    public:
+        CommandMeshAutoRepair(IAppContext* context);
+        void execute() override;
+
+        static constexpr std::string_view Name = "meshrepair.autorepair";
+
+    private:
+        bool m_isRunning = false;
+    };
+
+    class CommandWatertightMesh : public Command
+    {
+        Q_OBJECT
+    public:
+        static constexpr std::string_view Name = "watertight-mesh";
+        explicit CommandWatertightMesh(IAppContext* context);
+        void execute() override;
+
+    private:
+        bool m_isRunning = false;
+    };
+
+
 } // namespace Mayo

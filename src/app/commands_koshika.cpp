@@ -88,9 +88,14 @@
 
 #include "StlHollowing.h"
 
-
+//statistics
 #include "MeshRepairStatistics.h"
+#include <QtWidgets/QPushButton>
+#include <QPushButton>
 
+//water tight mesh
+#include "WatertightMesh.h"
+#include <QProgressDialog>
 
 namespace Mayo {
 
@@ -262,7 +267,7 @@ namespace Mayo {
         const float cutValue = static_cast<float>(spinCutPos->value());
 
         guiDoc->v3dView()->RemoveClipPlane(clipPlanePreview);
-        guiDoc->graphicsView().redraw();
+        guiDoc->graphicsView()->Redraw();
 
         // ------------------------------------------
         // 3. Ask user for save directory
@@ -1541,15 +1546,18 @@ namespace Mayo {
     //Statistic
     //
     ////////////////////////////////////////////////////////////////////////////
+    
 
     CommandMeshRepairStatistics::CommandMeshRepairStatistics(IAppContext* context)
         : Command(context)
     {
         auto action = new QAction(this);
-        action->setText(tr("Statistics + Auto Repair"));
-        action->setToolTip(tr("Show mesh statistics and run automatic hole repair"));
+        action->setText(tr("Mesh Statistics"));   // ✅ FIX
+        action->setToolTip(tr(
+            "View mesh statistics like triangles, vertices, holes, "
+            "non-manifold edges, and self-intersections."
+        ));
         setAction(action);
-        connect(action, &QAction::triggered, this, &CommandMeshRepairStatistics::execute);
     }
 
     void CommandMeshRepairStatistics::execute()
@@ -1569,7 +1577,86 @@ namespace Mayo {
         QWidget* parent = this->widgetMain();
 
         std::string errorMessage;
-        const auto stats = computeMeshRepairStatsFromStl(inPath.toStdString(), &errorMessage);
+        const auto stats = computeMeshRepairStatsFromMeshFile(inPath.toStdString(), &errorMessage);
+
+        if (!stats) {
+            QMessageBox::warning(parent, tr("Mesh Statistics"),
+                tr("Could not compute statistics.\n%1").arg(QString::fromStdString(errorMessage)));
+            return;
+        }
+
+        QDialog dlg(parent);
+        dlg.setWindowTitle(tr("Mesh Statistics"));
+
+        auto* layout = new QVBoxLayout(&dlg);
+
+        auto* label = new QLabel(&dlg);
+        label->setText(tr(
+            "Format: %1\n"
+            "Triangles: %2\n"
+            "Unique Vertices: %3\n"
+            "Duplicate Vertices: %4\n"
+            "Holes: %5\n"
+            "Non-manifold Edges: %6\n"
+            "Self-intersections: %7"
+        )
+            .arg(QString::fromStdString(stats->inputFormat))
+            .arg(stats->triangleCount)
+            .arg(stats->vertexCount)
+            .arg(stats->duplicateVertices)
+            .arg(stats->holeCount)
+            .arg(stats->nonManifoldEdges)
+            .arg(stats->selfIntersectionPairs)
+        );
+
+        layout->addWidget(label);
+
+        // Only Close button
+        auto* btnClose = new QPushButton(tr("Close"), &dlg);
+        layout->addWidget(btnClose);
+
+        connect(btnClose, &QPushButton::clicked, &dlg, &QDialog::accept);
+
+        dlg.exec();
+    }
+
+
+
+    //////////////////////////////////////////////////////////////////////////
+    //
+    //Auto Repair
+    //
+    ////////////////////////////////////////////////////////////////////////////
+    CommandMeshAutoRepair::CommandMeshAutoRepair(IAppContext* context)
+        : Command(context)
+    {
+        auto action = new QAction(this);
+        action->setText(tr("Auto Repair"));
+        action->setToolTip(tr(
+            "Automatically repair the mesh (fill holes, fix non-manifold edges "
+            "and remove self-intersections). Supports STL files."
+        ));
+        setAction(action);
+    }
+
+    void CommandMeshAutoRepair::execute()
+    {
+        if (m_isRunning)
+            return;
+
+        GuiDocument* guiDoc = this->currentGuiDocument();
+        if (!guiDoc)
+            return;
+
+        const FilePath filePath = guiDoc->document()->filePath();
+        if (filePath.empty())
+            return;
+
+        const QString inPath = QString::fromStdString(filePath.u8string());
+        QWidget* parent = this->widgetMain();
+
+        std::string errorMessage;
+        const auto stats = computeMeshRepairStatsFromMeshFile(inPath.toStdString(), &errorMessage);
         if (!stats) {
             QMessageBox::warning(parent, tr("Mesh Statistics"),
                 tr("Could not compute statistics.\n%1").arg(QString::fromStdString(errorMessage)));
@@ -1581,18 +1668,22 @@ namespace Mayo {
         auto* layout = new QVBoxLayout(&dlg);
 
         auto* label = new QLabel(&dlg);
-        label->setText(tr("Triangles: %1\n"
-            "Unique Vertices: %2\n"
-            "Duplicate Vertices: %3\n"
-            "Holes: %4\n"
-            "Non-manifold Edges: %5\n"
-            "Self-intersections: %6")
+        label->setText(tr("Format: %1\n"
+            "Triangles: %2\n"
+            "Unique Vertices: %3\n"
+            "Duplicate Vertices: %4\n"
+            "Holes: %5\n"
+            "Non-manifold Edges: %6\n"
+            "Self-intersections: %7\n"
+        )
+            .arg(QString::fromStdString(stats->inputFormat))
             .arg(stats->triangleCount)
             .arg(stats->vertexCount)
             .arg(stats->duplicateVertices)
             .arg(stats->holeCount)
             .arg(stats->nonManifoldEdges)
-            .arg(stats->selfIntersectionPairs));
+            .arg(stats->selfIntersectionPairs)
+        );
         layout->addWidget(label);
 
         auto* btnAutoRepair = new QPushButton(tr("Auto Repair"), &dlg);
@@ -1603,9 +1694,16 @@ namespace Mayo {
         layout->addLayout(rowButtons);
 
         connect(btnClose, &QPushButton::clicked, &dlg, &QDialog::reject);
-        connect(btnAutoRepair, &QPushButton::clicked, &dlg, [=, this]() {
+        connect(btnAutoRepair, &QPushButton::clicked, &dlg, [=]() {
             if (m_isRunning)
                 return;
+
+            if (QFileInfo(inPath).suffix().compare("stl", Qt::CaseInsensitive) != 0) {
+                QMessageBox::information(parent,
+                    tr("Auto Repair"),
+                    tr("Auto Repair currently supports STL files only. Statistics support STL/OBJ/PLY."));
+                return;
+            }
 
             const QString outPath = QFileDialog::getSaveFileName(
                 parent,
@@ -1647,6 +1745,187 @@ namespace Mayo {
             });
 
         dlg.exec();
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+   //
+   //  Watertight Mesh
+   //
+   //////////////////////////////////////////////////////////////////////////
+
+    CommandWatertightMesh::CommandWatertightMesh(IAppContext* context)
+        : Command(context)
+    {
+        auto action = new QAction(this);
+        action->setText(tr("Make Watertight"));
+        action->setToolTip(tr("Run a two-stage voxel repair to make the mesh "
+            "fully watertight (closes holes, removes "
+            "self-intersections & non-manifold geometry)"));
+        setAction(action);
+    }
+
+
+    void CommandWatertightMesh::execute()
+    {
+        if (m_isRunning)
+            return;
+
+        // ── 1. Guard: need an open document ──────────────────────────────────
+        GuiDocument* guiDoc = this->currentGuiDocument();
+        if (!guiDoc) {
+            QMessageBox::warning(this->widgetMain(),
+                tr("Watertight Mesh"),
+                tr("Please open a mesh file first."));
+            return;
+        }
+
+        const FilePath filePath = guiDoc->document()->filePath();
+        if (filePath.empty()) {
+            QMessageBox::warning(this->widgetMain(),
+                tr("Watertight Mesh"),
+                tr("The current document has no file path."));
+            return;
+        }
+
+        const QString inPath =
+            QString::fromStdString(filePath.u8string());
+
+        // ── 2. Check format (STL / OBJ / PLY supported) ──────────────────────
+        const QString ext = QFileInfo(inPath).suffix().toLower();
+        if (ext != "stl" && ext != "obj" && ext != "ply") {
+            QMessageBox::information(this->widgetMain(),
+                tr("Watertight Mesh"),
+                tr("Watertight repair supports STL, OBJ and PLY files.\n"
+                    "Current file: %1").arg(inPath));
+            return;
+        }
+
+        //// ── 3. Voxel resolution dialog ────────────────────────────────────────
+        //QDialog optDlg(this->widgetMain());
+        //optDlg.setWindowTitle(tr("Watertight Repair Options"));
+
+        //auto* vLayout = new QVBoxLayout(&optDlg);
+
+        //// Resolution spin
+        //auto* resLabel = new QLabel(
+        //    tr("Voxel resolution  (higher = more detail, slower):"), &optDlg);
+        //auto* resSpin = new QSpinBox(&optDlg);
+        //resSpin->setRange(32, 512);
+        //resSpin->setValue(128);
+        //resSpin->setSingleStep(32);
+        //resSpin->setSuffix(tr("  voxels"));
+
+        //// Info label
+        //auto* infoLabel = new QLabel(
+        //    tr("<small>Recommended: 128 for most meshes, "
+        //        "256 for high-detail models, "
+        //        "512 for ultra-precision (uses ~1 GB RAM).</small>"),
+        //    &optDlg);
+        //infoLabel->setWordWrap(true);
+
+        //auto* btnBox = new QDialogButtonBox(
+        //    QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &optDlg);
+        //connect(btnBox, &QDialogButtonBox::accepted, &optDlg, &QDialog::accept);
+        //connect(btnBox, &QDialogButtonBox::rejected, &optDlg, &QDialog::reject);
+
+        //vLayout->addWidget(resLabel);
+        //vLayout->addWidget(resSpin);
+        //vLayout->addWidget(infoLabel);
+        //vLayout->addWidget(btnBox);
+
+        //if (optDlg.exec() != QDialog::Accepted)
+        //    return;
+
+        //const int voxelRes = resSpin->value();
+        const int voxelRes = 128;
+
+        // ── 4. Output file path ───────────────────────────────────────────────
+        const QString defaultOut =
+            QFileInfo(inPath).absolutePath() + '/' +
+            QFileInfo(inPath).completeBaseName() +
+            QString("_watertight_v%1.%2").arg(voxelRes).arg(ext);
+
+        const QString outPath = QFileDialog::getSaveFileName(
+            this->widgetMain(),
+            tr("Save watertight mesh as"),
+            defaultOut,
+            tr("STL Files (*.stl);;OBJ Files (*.obj);;All Files (*)")
+        );
+        if (outPath.isEmpty())
+            return;
+
+        // ── 5. Progress dialog ────────────────────────────────────────────────
+        auto* progressDlg = new QProgressDialog(
+            tr("Preparing watertight repair…"),
+            QString() /*no cancel button*/,
+            0, 100,
+            this->widgetMain());
+        progressDlg->setWindowTitle(tr("Watertight Mesh"));
+        progressDlg->setWindowModality(Qt::WindowModal);
+        progressDlg->setMinimumDuration(0);
+        progressDlg->setValue(0);
+
+        // ── 6. Run on background thread ───────────────────────────────────────
+        m_isRunning = true;
+
+        QWidget* parentWgt = this->widgetMain();
+        QString  inPathCopy = inPath;
+        QString  outPathCopy = outPath;
+
+        // We use QFutureWatcher so the progress dialog pumps the event loop
+        auto* watcher = new QFutureWatcher<QString>(this);
+
+        QObject::connect(watcher, &QFutureWatcher<QString>::progressValueChanged,
+            progressDlg, &QProgressDialog::setValue);
+
+        QObject::connect(watcher, &QFutureWatcher<QString>::finished,
+            this, [this, watcher, progressDlg,
+            parentWgt, outPathCopy]()
+            {
+                progressDlg->close();
+                progressDlg->deleteLater();
+
+                const QString errMsg = watcher->result();
+                watcher->deleteLater();
+
+                m_isRunning = false;
+
+                if (!errMsg.isEmpty()) {
+                    QMessageBox::critical(parentWgt,
+                        tr("Watertight Mesh"),
+                        tr("Repair failed:\n%1").arg(errMsg));
+                    return;
+                }
+
+                QMessageBox::information(parentWgt,
+                    tr("Watertight Mesh"),
+                    tr("Watertight repair complete!\n\n"
+                        "The repaired mesh has been saved to:\n%1")
+                    .arg(outPathCopy));
+            });
+
+        // Run the algorithm concurrently
+
+        QFuture<QString> future = QtConcurrent::run(
+            [inPathCopy, outPathCopy, voxelRes, progressDlg]() -> QString
+            {
+                // progress callback – posts value back to the progress dialog in the GUI thread
+                Mayo::WTProgressCallback cb =
+                    [progressDlg](int pct, const std::string&) {
+                    QMetaObject::invokeMethod(progressDlg, "setValue", Qt::QueuedConnection, Q_ARG(int, pct));
+                    };
+
+                const std::string err = Mayo::wtRepairMesh(
+                    inPathCopy.toStdString(),
+                    outPathCopy.toStdString(),
+                    voxelRes,
+                    cb
+                );
+
+                return QString::fromStdString(err);
+            });
+
+        watcher->setFuture(future);
     }
 
 } // namespace Mayo
