@@ -12,7 +12,7 @@ set(Mayo_VersionPatch 0)
 set(Mayo_Version ${Mayo_VersionMajor}.${Mayo_VersionMinor}.${Mayo_VersionPatch})
 
 project(
-    mayo
+    CADify
     VERSION ${Mayo_Version}
     DESCRIPTION "Mayo - Opensource 3D CAD viewer and converter"
     LANGUAGES CXX
@@ -541,7 +541,7 @@ endif()
 
 if(Mayo_BuildApp)
     add_executable(
-        cadify
+        CADify
         ${MayoApp_SourceFiles}
         ${MayoApp_HeaderFiles}
         ${MayoApp_QtUiFiles}
@@ -551,27 +551,27 @@ if(Mayo_BuildApp)
         ${Mayo_RcIconsWin}
         ${Mayo_AppIconMacOS}
     )
-    ##here is the exe path: $<TARGET_FILE:cadify>
+    ##here is the exe path: $<TARGET_FILE:CADify>
    set(KOSHIKA_EXE_DIR "${CMAKE_SOURCE_DIR}/koshika_tools")
 
-add_custom_command(TARGET cadify POST_BUILD
+add_custom_command(TARGET CADify POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${KOSHIKA_EXE_DIR}/ply2objwithnormal"
-        "$<TARGET_FILE_DIR:cadify>/ply2objwithnormal"
+        "$<TARGET_FILE_DIR:CADify>/ply2objwithnormal"
 
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${KOSHIKA_EXE_DIR}/ply2objwithoutnormal"
-        "$<TARGET_FILE_DIR:cadify>/ply2objwithoutnormal"
+        "$<TARGET_FILE_DIR:CADify>/ply2objwithoutnormal"
 
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${KOSHIKA_EXE_DIR}/3dxml_converter"
-    "$<TARGET_FILE_DIR:cadify>/3dxml_converter"
+##    COMMAND ${CMAKE_COMMAND} -E copy_directory
+##  "${KOSHIKA_EXE_DIR}/3dxml_converter"
+##   "$<TARGET_FILE_DIR:CADify>/3dxml_converter"
 
     COMMENT "Copying Koshika tools to build output..."
 )
 
     #koshika features
-   target_sources(cadify PRIVATE
+   target_sources(CADify PRIVATE
     ${CMAKE_SOURCE_DIR}/src/app/commands_koshika.cpp
     ${CMAKE_SOURCE_DIR}/src/app/STLCutter.cpp
     ${CMAKE_SOURCE_DIR}/src/app/StlHoleFillingCgal.cpp
@@ -580,19 +580,35 @@ add_custom_command(TARGET cadify POST_BUILD
     ${CMAKE_SOURCE_DIR}/src/app/StlHoleFillingSelectedWorker.cpp
     ${CMAKE_SOURCE_DIR}/src/app/STLMerger.cpp
     ${CMAKE_SOURCE_DIR}/src/app/StlCuttingWorker.cpp
-)
+    ${CMAKE_SOURCE_DIR}/src/app/MeshConverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/commands_conversion.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/mesh.cpp
+    
+    ${CMAKE_SOURCE_DIR}/src/app/triangle.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/vec3.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/pmesh.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/vertex.cpp
+
+    
+    ${CMAKE_SOURCE_DIR}/src/app/StlHollowing.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/MeshRepairStatistics.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/WatertightMesh.cpp
+
+    
+
+    )
 
 
-    target_compile_definitions(cadify PRIVATE ${Mayo_CompileDefinitions})
-    target_compile_options(cadify PRIVATE ${Mayo_CompileOptions})
-    target_link_libraries(cadify PRIVATE ${MayoApp_LinkLibraries})
+    target_compile_definitions(CADify PRIVATE ${Mayo_CompileDefinitions})
+    target_compile_options(CADify PRIVATE ${Mayo_CompileOptions})
+    target_link_libraries(CADify PRIVATE ${MayoApp_LinkLibraries})
     # Required by generated Qt UI files
-    target_include_directories(cadify PRIVATE ${PROJECT_SOURCE_DIR}/src/app)
+    target_include_directories(CADify PRIVATE ${PROJECT_SOURCE_DIR}/src/app)
 
     set_target_properties(
-        cadify
+        CADify
         PROPERTIES
-            MACOSX_BUNDLE_BUNDLE_NAME "cadify"
+            MACOSX_BUNDLE_BUNDLE_NAME "CADify"
             MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
             MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
             MACOSX_BUNDLE_COPYRIGHT ${Mayo_Copyright}
@@ -612,29 +628,29 @@ add_custom_command(TARGET cadify POST_BUILD
             cmake_path(GET QtPluginDLL PARENT_PATH QtPluginDLL_Path)
             cmake_path(GET QtPluginDLL_Path FILENAME QtPluginDLL_PathName)
             add_custom_command(
-                TARGET cadify POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:cadify>/plugins/${QtPluginDLL_PathName}"
+                TARGET CADify POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:CADify>/plugins/${QtPluginDLL_PathName}"
             )
             add_custom_command(
-                TARGET cadify POST_BUILD
+                TARGET CADify POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${QtPluginDLL}" "$<TARGET_FILE_DIR:cadify>/plugins/${QtPluginDLL_PathName}"
+                        "${QtPluginDLL}" "$<TARGET_FILE_DIR:CADify>/plugins/${QtPluginDLL_PathName}"
             )
         endforeach()
 
         # Copy OpenCascade 3rd-party DLLs
         foreach(Occ3rdDLL ${OpenCASCADE_3RDPARTY_DLLS})
             add_custom_command(
-                TARGET cadify POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different "${Occ3rdDLL}" $<TARGET_FILE_DIR:cadify>
+                TARGET CADify POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "${Occ3rdDLL}" $<TARGET_FILE_DIR:CADify>
             )
         endforeach()
 
         # Copy runtime DLLs specified with library IMPORTED_LOCATION property
         add_custom_command(
-            TARGET cadify POST_BUILD
+            TARGET CADify POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    $<TARGET_RUNTIME_DLLS:cadify> $<TARGET_FILE_DIR:cadify>
+                    $<TARGET_RUNTIME_DLLS:CADify> $<TARGET_FILE_DIR:CADify>
             COMMAND_EXPAND_LISTS
         )
     endif() # Mayo_PostBuildCopyRuntimeDLLs
@@ -675,7 +691,7 @@ list(
 
 if(Mayo_BuildConvCli)
     add_executable(
-        mayo-conv
+        CADify-conv
         ${MayoConv_HeaderFiles}
         ${MayoConv_SourceFiles}
         i18n/mayo.qrc
@@ -684,17 +700,17 @@ if(Mayo_BuildConvCli)
         ${Mayo_AppIconMacOS}
     )
 
-    target_compile_definitions(mayo-conv PRIVATE ${Mayo_CompileDefinitions})
-    target_compile_options(mayo-conv PRIVATE ${Mayo_CompileOptions})
+    target_compile_definitions(CADify-conv PRIVATE ${Mayo_CompileDefinitions})
+    target_compile_options(CADify-conv PRIVATE ${Mayo_CompileOptions})
     target_link_libraries(
-        mayo-conv PRIVATE
+        CADify-conv PRIVATE
         MayoCoreLib
         MayoIOLib
         Qt${QT_VERSION_MAJOR}::Core
     )
 
     set_target_properties(
-        mayo-conv PROPERTIES WIN32_EXECUTABLE FALSE
+        CADify-conv PROPERTIES WIN32_EXECUTABLE FALSE
     )
 endif() # Mayo_BuildConvCli
 

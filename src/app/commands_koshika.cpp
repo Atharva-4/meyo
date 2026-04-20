@@ -97,6 +97,9 @@
 #include "WatertightMesh.h"
 #include <QProgressDialog>
 
+#include "TriToQuad.h"
+#include "QuadRemesher.h"
+
 namespace Mayo {
 
     CommandCutting::CommandCutting(IAppContext* context)
@@ -1927,5 +1930,184 @@ namespace Mayo {
 
         watcher->setFuture(future);
     }
+
+    // ============================================================
+//  // ============================================================
+//  Paste this block into commands_koshika.cpp
+//  (just before the closing  }  of namespace Mayo,
+//   after the CommandWatertightMesh::execute() definition)
+//
+//  Also add at the top of the file:
+//      #include "TriToQuad.h"
+// ============================================================
+
+//////////////////////////////////////////////////////////////////////////
+//
+//  Tri-to-Quad Conversion
+//
+//////////////////////////////////////////////////////////////////////////
+
+    CommandTriToQuad::CommandTriToQuad(IAppContext* context)
+        : Command(context)
+    {
+        auto* action = new QAction(this);
+        action->setText(tr("Tri to Quad"));
+        action->setToolTip(tr(
+            "Convert triangle mesh to a quad-dominant mesh.\n"
+            "Adjacent coplanar triangle pairs are merged into quads.\n"
+            "Unpaired triangles are kept as-is."));
+        setAction(action);
+    }
+
+    void CommandTriToQuad::execute()
+    {
+        if (m_isRunning)
+            return;
+
+        // ── 1. Need an open document ──────────────────────────────────────────
+        GuiDocument* guiDoc = this->currentGuiDocument();
+        if (!guiDoc) {
+            QMessageBox::warning(this->widgetMain(),
+                tr("Tri to Quad"),
+                tr("Please open a mesh file first."));
+            return;
+        }
+
+        const FilePath filePath = guiDoc->document()->filePath();
+        if (filePath.empty()) {
+            QMessageBox::warning(this->widgetMain(),
+                tr("Tri to Quad"),
+                tr("The current document has no file path."));
+            return;
+        }
+
+        const QString inPath = QString::fromStdString(filePath.u8string());
+
+        // ── 2. Format check (STL / OBJ / PLY) ────────────────────────────────
+        const QString ext = QFileInfo(inPath).suffix().toLower();
+        if (ext != "stl" && ext != "obj" && ext != "ply") {
+            QMessageBox::information(this->widgetMain(),
+                tr("Tri to Quad"),
+                tr("Tri-to-Quad conversion supports STL, OBJ and PLY files.\n"
+                    "Current file: %1").arg(inPath));
+            return;
+        }
+
+        // ── 3. Options dialog ─────────────────────────────────────────────────
+        QDialog optDlg(this->widgetMain());
+        optDlg.setWindowTitle(tr("Tri to Quad Options"));
+
+        auto* vLayout = new QVBoxLayout(&optDlg);
+
+        // Angle threshold
+        auto* angleLabel = new QLabel(
+            tr("Max dihedral angle between paired triangles (degrees):\n"
+                "Lower = stricter planarity, fewer quads.\n"
+                "Higher = more quads, possible non-planar faces."),
+            &optDlg);
+        angleLabel->setWordWrap(true);
+
+        auto* angleSpin = new QDoubleSpinBox(&optDlg);
+        angleSpin->setRange(1.0, 60.0);
+        angleSpin->setValue(15.0);
+        angleSpin->setSingleStep(1.0);
+        angleSpin->setSuffix(tr("  °"));
+
+        auto* btnBox = new QDialogButtonBox(
+            QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &optDlg);
+        connect(btnBox, &QDialogButtonBox::accepted, &optDlg, &QDialog::accept);
+        connect(btnBox, &QDialogButtonBox::rejected, &optDlg, &QDialog::reject);
+
+        vLayout->addWidget(angleLabel);
+        vLayout->addWidget(angleSpin);
+        vLayout->addWidget(btnBox);
+
+        if (optDlg.exec() != QDialog::Accepted)
+            return;
+
+        const float angleThresh = static_cast<float>(angleSpin->value());
+
+        // ── 4. Output file path ───────────────────────────────────────────────
+        const QString defaultOut =
+            QFileInfo(inPath).absolutePath() + '/' +
+            QFileInfo(inPath).completeBaseName() + "_quad.obj";
+
+        const QString outPath = QFileDialog::getSaveFileName(
+            this->widgetMain(),
+            tr("Save quad mesh as"),
+            defaultOut,
+            tr("OBJ Files (*.obj);;All Files (*)")
+        );
+        if (outPath.isEmpty())
+            return;
+
+        // ── 5. Progress dialog ────────────────────────────────────────────────
+        auto* progressDlg = new QProgressDialog(
+            tr("Converting triangles to quads…"),
+            QString() /* no cancel */,
+            0, 100,
+            this->widgetMain());
+        progressDlg->setWindowTitle(tr("Tri to Quad"));
+        progressDlg->setWindowModality(Qt::WindowModal);
+        progressDlg->setMinimumDuration(0);
+        progressDlg->setValue(0);
+
+        // ── 6. Run on background thread ───────────────────────────────────────
+        m_isRunning = true;
+
+        QWidget* parentWgt = this->widgetMain();
+        QString  inPathCopy = inPath;
+        QString  outPathCopy = outPath;
+
+        auto* watcher = new QFutureWatcher<QString>(this);
+
+        QObject::connect(watcher, &QFutureWatcher<QString>::progressValueChanged,
+            progressDlg, &QProgressDialog::setValue);
+
+        QObject::connect(watcher, &QFutureWatcher<QString>::finished,
+            this, [this, watcher, progressDlg, parentWgt, outPathCopy]()
+            {
+                progressDlg->close();
+                progressDlg->deleteLater();
+
+                const QString errMsg = watcher->result();
+                watcher->deleteLater();
+                m_isRunning = false;
+
+                if (!errMsg.isEmpty()) {
+                    QMessageBox::critical(parentWgt,
+                        tr("Tri to Quad"),
+                        tr("Conversion failed:\n%1").arg(errMsg));
+                    return;
+                }
+
+                QMessageBox::information(parentWgt,
+                    tr("Tri to Quad"),
+                    tr("Conversion complete!\n\n"
+                        "Quad-dominant mesh saved to:\n%1").arg(outPathCopy));
+            });
+
+        QFuture<QString> future = QtConcurrent::run(
+            [inPathCopy, outPathCopy, angleThresh, progressDlg]() -> QString
+            {
+                Mayo::T2QProgressCallback cb =
+                    [progressDlg](int pct, const std::string&) {
+                    QMetaObject::invokeMethod(progressDlg, "setValue",
+                        Qt::QueuedConnection, Q_ARG(int, pct));
+                    };
+
+                const std::string err = Mayo::triToQuadConvert(
+                    inPathCopy.toStdString(),
+                    outPathCopy.toStdString(),
+                    angleThresh,
+                    cb
+                );
+
+                return QString::fromStdString(err);
+            });
+
+        watcher->setFuture(future);
+    }
+
 
 } // namespace Mayo

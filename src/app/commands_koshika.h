@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "commands_api.h"
 
@@ -135,6 +135,21 @@ namespace Mayo {
     private:
         bool m_isRunning = false;
     };
+    // ── Add this block inside the Mayo namespace in commands_koshika.h ──────────
+//
+//  #include "TriToQuad.h"   <-- put this near the other #includes at top of .h
+//
+// ---------------------------------------------------------------------------
 
+    class CommandTriToQuad : public Command
+    {
+    public:
+        static constexpr std::string_view Name = "tri-to-quad";
+        explicit CommandTriToQuad(IAppContext* context);
+        void execute() override;
+     
+    private:
+        bool m_isRunning = false;
+    };
 
 } // namespace Mayo

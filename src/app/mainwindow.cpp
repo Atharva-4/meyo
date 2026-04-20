@@ -175,7 +175,7 @@ namespace Mayo {
         this->addCommand<CommandMeshRepairStatistics>();
         this->addCommand<CommandMeshAutoRepair>();
 		this->addCommand<CommandWatertightMesh>();
-
+        this->addCommand<CommandTriToQuad>();
 
         // Add the 3DXML conversion command so its QAction can be used in menus
         //this->addCommand<CommandConvert3DXML>();
@@ -267,10 +267,12 @@ namespace Mayo {
 
             fnAddAction(menu, CommandMeshRepairStatistics::Name);
             fnAddAction(menu, CommandMeshAutoRepair::Name);
+         
+            
 
 
             fnAddAction(menu, CommandWatertightMesh::Name);
-            
+            fnAddAction(menu, CommandTriToQuad::Name);
 
 
             //fnAddAction(menu, CommandConvert3DXML::Name);
